@@ -1,0 +1,203 @@
+.page { min-height: 100vh; background: var(--color-bg); }
+
+/* Tab */
+.tab-bar {
+  display: flex;
+  background: var(--color-white);
+  padding: 0 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 30rpx;
+  color: var(--color-text-light);
+  position: relative;
+}
+
+.tab-item.active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 4rpx;
+  background: var(--color-primary);
+  border-radius: 2rpx;
+}
+
+.tab-badge {
+  display: inline-block;
+  background: #FF6B35;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 500;
+  padding: 0 10rpx;
+  border-radius: 16rpx;
+  margin-left: 8rpx;
+  vertical-align: middle;
+}
+
+/* 容器 */
+.container {
+  padding: 16rpx 32rpx;
+}
+
+/* 合并申请卡片 */
+.merge-item {
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.merge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.merge-status {
+  font-size: 24rpx;
+  font-weight: 500;
+  padding: 4rpx 16rpx;
+  border-radius: 16rpx;
+}
+
+.status-pending {
+  color: #E6A23C;
+  background: rgba(230, 162, 60, 0.1);
+}
+
+.status-approved {
+  color: #67C23A;
+  background: rgba(103, 194, 58, 0.1);
+}
+
+.status-rejected {
+  color: #F56C6C;
+  background: rgba(245, 108, 108, 0.1);
+}
+
+.merge-time {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+}
+
+/* 合并内容 */
+.merge-body {
+  margin-bottom: 16rpx;
+}
+
+.merge-desc {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--color-text);
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.merge-note {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  display: block;
+}
+
+/* 猫咪标签 */
+.merge-cats {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.cat-chip {
+  flex: 1;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 12rpx 16rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.cat-chip-label {
+  font-size: 20rpx;
+  color: var(--color-text-light);
+}
+
+.cat-chip-text {
+  font-size: 26rpx;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.merge-arrow {
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+/* 操作按钮 */
+.merge-actions {
+  display: flex;
+  gap: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.action-btn {
+  flex: 1;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  border-radius: var(--radius-sm);
+}
+
+.approve-btn {
+  background: linear-gradient(135deg, #FF9F5A, #FF6B2B);
+  color: #fff;
+}
+
+.reject-btn {
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+/* 等待提示 */
+.merge-hint {
+  text-align: center;
+  padding-top: 12rpx;
+}
+
+.hint-text {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+  gap: 16rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+}
+
+.empty-text {
+  color: var(--color-text-light);
+  font-size: 28rpx;
+}

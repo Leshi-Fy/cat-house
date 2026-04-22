@@ -1,0 +1,35 @@
+<!--
+  我的家养猫列表
+-->
+<view class="page">
+  <view class="container">
+    <view class="cat-list" wx:if="{{cats.length > 0}}">
+      <view class="cat-item card" wx:for="{{cats}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}">
+        <image class="cat-avatar" src="{{item.photos[0] || '/images/default-cat.png'}}" mode="aspectFill" />
+        <view class="cat-info">
+          <text class="cat-name">{{item.name}}</text>
+          <view class="cat-meta">
+            <text wx:if="{{item.breed}}">{{item.breed}}</text>
+            <text wx:if="{{item.gender}}">{{item.gender === 'male' ? '♂' : '♀'}}</text>
+            <text wx:if="{{item.age}}">{{item.age}}</text>
+          </view>
+          <text class="cat-personality" wx:if="{{item.personality}}">{{item.personality}}</text>
+        </view>
+        <view class="cat-arrow">
+          <text class="arrow-icon">›</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:elif="{{!loading}}">
+      <text class="empty-icon">🐱</text>
+      <text class="empty-text">还没有添加家养猫</text>
+      <button class="btn-primary" bindtap="goAddCat">添加我的猫咪</button>
+    </view>
+  </view>
+
+  <!-- 浮动添加 -->
+  <view class="fab" bindtap="goAddCat" wx:if="{{cats.length > 0}}">
+    <text class="fab-icon">+</text>
+  </view>
+</view>

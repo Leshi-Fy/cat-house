@@ -1,0 +1,21 @@
+.page { min-height: 100vh; background: var(--color-bg); }
+
+.tab-bar { display: flex; background: var(--color-white); padding: 0 32rpx; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04); }
+.tab-item { flex: 1; text-align: center; padding: 24rpx 0; font-size: 30rpx; color: var(--color-text-light); position: relative; }
+.tab-item.active { color: var(--color-primary); font-weight: 600; }
+.tab-item.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 48rpx; height: 4rpx; background: var(--color-primary); border-radius: 2rpx; }
+
+.container { padding: 16rpx 32rpx; }
+
+.list-item { padding: 20rpx; margin-bottom: 16rpx; }
+.item-row { display: flex; justify-content: space-between; align-items: center; }
+.item-left { display: flex; align-items: center; flex: 1; min-width: 0; }
+.item-title { font-size: 28rpx; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-amount { font-size: 30rpx; font-weight: 600; flex-shrink: 0; margin-left: 12rpx; }
+.item-time { font-size: 22rpx; color: var(--color-text-light); display: block; margin-top: 4rpx; }
+.item-bottom { display: flex; justify-content: space-between; align-items: center; }
+.receipt-link { font-size: 24rpx; color: var(--color-primary); font-weight: 500; }
+
+.empty-state { display: flex; flex-direction: column; align-items: center; padding: 120rpx 0; gap: 16rpx; }
+.empty-icon { font-size: 80rpx; }
+.empty-text { color: var(--color-text-light); font-size: 28rpx; }

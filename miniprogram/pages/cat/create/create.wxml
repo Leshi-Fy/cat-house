@@ -1,0 +1,126 @@
+<!--
+  创建流浪猫档案
+-->
+<view class="page">
+  <view class="container">
+    <!-- 猫咪照片 -->
+    <view class="section">
+      <view class="section-title">猫咪照片</view>
+      <view class="photo-grid">
+        <view class="photo-item" wx:for="{{form.photos}}" wx:key="index">
+          <image class="photo-img" src="{{item}}" mode="aspectFill" bindtap="onPreviewPhoto" data-url="{{item}}" />
+          <view class="photo-delete" bindtap="onDeletePhoto" data-index="{{index}}">✕</view>
+        </view>
+        <view class="photo-add" bindtap="addPhotos" wx:if="{{form.photos.length < 9}}">
+          <text class="add-icon">＋</text>
+          <text class="add-text">添加照片</text>
+        </view>
+      </view>
+      <text class="photo-hint">最多上传9张，第一张为主图</text>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="section">
+      <view class="section-title">基本信息</view>
+      
+      <view class="form-item">
+        <text class="form-label">名字/别名 *</text>
+        <input class="form-input" placeholder="给猫咪起个名字" value="{{form.name}}" bindinput="onInputName" />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">外貌描述</text>
+        <textarea class="form-textarea" placeholder="描述猫咪的花色、体型、特征等" value="{{form.description}}" bindinput="onInputDesc" maxlength="500" auto-height />
+      </view>
+
+      <view class="form-row">
+        <view class="form-item half">
+          <text class="form-label">性别</text>
+          <picker mode="selector" range="{{genderOptions}}" range-key="label" value="{{genderIndex}}" bindchange="onGenderChange">
+            <view class="form-picker">{{genderOptions[genderIndex].label}} ▾</view>
+          </picker>
+        </view>
+        <view class="form-item half">
+          <text class="form-label">大概年龄</text>
+          <input class="form-input" placeholder="如：1岁、几个月" value="{{form.age}}" bindinput="onInputAge" />
+        </view>
+      </view>
+
+      <view class="form-row">
+        <view class="form-item half">
+          <text class="form-label">绝育状态</text>
+          <picker mode="selector" range="{{sterilizedOptions}}" range-key="label" value="{{sterilizedIndex}}" bindchange="onSterilizedChange">
+            <view class="form-picker">{{sterilizedOptions[sterilizedIndex].label}} ▾</view>
+          </picker>
+        </view>
+        <view class="form-item half">
+          <text class="form-label">健康状况</text>
+          <picker mode="selector" range="{{healthOptions}}" range-key="label" value="{{healthIndex}}" bindchange="onHealthChange">
+            <view class="form-picker">{{healthOptions[healthIndex].label}} ▾</view>
+          </picker>
+        </view>
+      </view>
+    </view>
+
+    <!-- 活动区域（地图标注） -->
+    <view class="section">
+      <view class="section-title">活动区域 📍</view>
+      <text class="map-hint">拖动地图选择猫咪活动位置</text>
+      <view class="map-wrapper">
+        <map
+          id="catMap"
+          class="cat-map"
+          latitude="{{latitude}}"
+          longitude="{{longitude}}"
+          scale="{{scale}}"
+          circles="{{circles}}"
+          show-location
+          enable-scroll
+          bindregionchange="onRegionChange"
+        />
+        <!-- 中心大头针 -->
+        <view class="pin-overlay">
+          <view class="pin-icon">
+            <view class="pin-head"></view>
+          </view>
+          <view class="pin-pulse"></view>
+        </view>
+      </view>
+      <view class="map-coords" wx:if="{{latitude}}">
+        当前位置：{{latitude.toFixed(4)}}, {{longitude.toFixed(4)}}
+      </view>
+
+      <!-- 活动范围设置 -->
+      <view class="radius-section">
+        <view class="radius-header">
+          <text class="radius-label">活动范围</text>
+          <text class="radius-value">{{form.areaRadius}}m</text>
+        </view>
+        <slider
+          class="radius-slider"
+          min="50"
+          max="2000"
+          step="50"
+          value="{{form.areaRadius}}"
+          activeColor="#FF8C42"
+          backgroundColor="#eee"
+          block-size="24"
+          bindchange="onRadiusChange"
+        />
+        <view class="radius-presets">
+          <view class="preset-btn {{form.areaRadius === 100 ? 'active' : ''}}" bindtap="onPresetRadius" data-value="100">100m</view>
+          <view class="preset-btn {{form.areaRadius === 300 ? 'active' : ''}}" bindtap="onPresetRadius" data-value="300">300m</view>
+          <view class="preset-btn {{form.areaRadius === 500 ? 'active' : ''}}" bindtap="onPresetRadius" data-value="500">500m</view>
+          <view class="preset-btn {{form.areaRadius === 1000 ? 'active' : ''}}" bindtap="onPresetRadius" data-value="1000">1km</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-wrap safe-bottom">
+      <button class="btn-primary submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
+        {{submitting ? '创建中...' : '🐾 创建流浪猫档案'}}
+      </button>
+    </view>
+  </view>
+</view>

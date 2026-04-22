@@ -1,0 +1,51 @@
+<!--
+  探索页 - 全部流浪猫列表
+-->
+<view class="page page-with-tabbar">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <text class="search-icon">🔍</text>
+      <input class="search-input" placeholder="搜索猫咪名字..." bindinput="onSearch" value="{{keyword}}" />
+    </view>
+  </view>
+
+  <!-- 提示（合并模式） -->
+  <view class="merge-tip" wx:if="{{mode === 'merge'}}">
+    <text>🔗 请选择你创建的猫咪，将与「{{toCatName}}」合并</text>
+  </view>
+
+  <!-- 猫咪列表 -->
+  <view class="cat-list" wx:if="{{cats.length > 0}}">
+    <view class="cat-item card" wx:for="{{cats}}" wx:key="_id" bindtap="onTapCat" data-id="{{item._id}}">
+      <image class="cat-thumb" src="{{item.photos[0]}}" mode="aspectFill" />
+      <view class="cat-info">
+        <view class="cat-name-row">
+          <text class="cat-name">{{item.name}}</text>
+          <text class="tag {{item.healthStatus === 'good' ? 'tag-success' : 'tag-warning'}}" style="font-size: 20rpx;">
+            {{item.healthText}}
+          </text>
+        </view>
+        <view class="cat-desc text-ellipsis">{{item.description || '暂无描述'}}</view>
+        <view class="cat-meta-row">
+          <text class="meta-text">{{item.sterilizedText}}</text>
+          <text class="meta-text" wx:if="{{item.age}}">· 约{{item.age}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:elif="{{!loading}}">
+    <text class="empty-icon">🐱</text>
+    <text class="empty-text">还没有流浪猫档案</text>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{loadingMore}}">
+    <text>加载中...</text>
+  </view>
+  <view class="load-more" wx:elif="{{!hasMore && cats.length > 0}}">
+    <text class="text-light">— 没有更多了 —</text>
+  </view>
+</view>

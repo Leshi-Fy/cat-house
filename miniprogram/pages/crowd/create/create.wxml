@@ -1,0 +1,98 @@
+<!--
+  创建众筹项目
+-->
+<view class="page">
+  <view class="container">
+    <!-- 选择猫咪 -->
+    <view class="section card">
+      <view class="section-title">救助猫咪 *</view>
+      <view class="cat-select" bindtap="onChooseCat">
+        <image class="cat-thumb" wx:if="{{form.catPhoto}}" src="{{form.catPhoto}}" mode="aspectFill" />
+        <view class="cat-thumb-placeholder" wx:else>
+          <text>🐱</text>
+        </view>
+        <view class="cat-select-info">
+          <text class="cat-name">{{form.catName || '点击选择救助猫咪'}}</text>
+          <text class="cat-hint">选择要救助的流浪猫</text>
+        </view>
+        <text class="arrow">></text>
+      </view>
+    </view>
+
+    <!-- 众筹类型 -->
+    <view class="section card">
+      <view class="section-title">众筹类型</view>
+      <view class="type-grid">
+        <view 
+          class="type-item {{form.crowdType === item.value ? 'active' : ''}}" 
+          wx:for="{{typeOptions}}" 
+          wx:key="value"
+          bindtap="onTypeChange"
+          data-value="{{item.value}}"
+          data-index="{{index}}"
+        >
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 描述 -->
+    <view class="section card">
+      <view class="section-title">项目描述 *</view>
+      <textarea 
+        class="desc-input" 
+        placeholder="描述猫咪的情况和众筹目的..." 
+        value="{{form.description}}" 
+        bindinput="onInputDesc"
+        maxlength="1000"
+        auto-height
+      />
+    </view>
+
+    <!-- 目标金额 -->
+    <view class="section card">
+      <view class="section-title">目标金额 *</view>
+      <view class="amount-input-wrap">
+        <text class="amount-prefix">¥</text>
+        <input 
+          class="amount-input" 
+          type="digit" 
+          placeholder="0.00" 
+          value="{{form.targetAmount}}" 
+          bindinput="onInputAmount"
+        />
+      </view>
+    </view>
+
+    <!-- 截止日期 -->
+    <view class="section card">
+      <view class="section-title">截止日期 *</view>
+      <picker mode="date" start="{{minDate}}" value="{{form.deadline}}" bindchange="onDeadlineChange">
+        <view class="date-picker">
+          {{form.deadline || '请选择截止日期'}} ▾
+        </view>
+      </picker>
+    </view>
+
+    <!-- 补充图片 -->
+    <view class="section card">
+      <view class="section-title">补充图片（可选）</view>
+      <view class="photo-grid">
+        <view class="photo-item" wx:for="{{photos}}" wx:key="index">
+          <image class="photo-img" src="{{item}}" mode="aspectFill" />
+          <view class="photo-delete" bindtap="onDeletePhoto" data-index="{{index}}">✕</view>
+        </view>
+        <view class="photo-add" bindtap="addPhotos" wx:if="{{photos.length < 9}}">
+          <text>+</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 提交 -->
+    <view class="submit-wrap safe-bottom">
+      <button class="btn-primary submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
+        {{submitting ? '创建中...' : '🐾 发起众筹'}}
+      </button>
+    </view>
+  </view>
+</view>

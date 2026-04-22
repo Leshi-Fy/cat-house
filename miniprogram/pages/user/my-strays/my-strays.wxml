@@ -1,0 +1,31 @@
+<!--
+  我创建的流浪猫
+-->
+<view class="page">
+  <view class="container">
+    <view class="cat-list" wx:if="{{cats.length > 0}}">
+      <view class="cat-item card" wx:for="{{cats}}" wx:key="_id" bindtap="onTapCat" data-id="{{item._id}}">
+        <image class="cat-thumb" src="{{item.photos[0]}}" mode="aspectFill" />
+        <view class="cat-info">
+          <view class="cat-name-row">
+            <text class="cat-name">{{item.name}}</text>
+            <view class="merge-badge" wx:if="{{item.hasMerge}}">
+              <text>🔗 已合并</text>
+            </view>
+          </view>
+          <text class="alias-text" wx:if="{{item.aliasText}}">{{item.aliasText}}</text>
+          <view class="tag-row">
+            <text class="tag {{item.healthStatus === 'good' ? 'tag-success' : 'tag-warning'}}" style="font-size: 20rpx;">{{item.healthText}}</text>
+            <text class="tag tag-primary" style="font-size: 20rpx;">{{item.sterilizedText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:elif="{{!loading}}">
+      <text class="empty-icon">🐾</text>
+      <text class="empty-text">还没有创建流浪猫档案</text>
+      <navigator class="btn-primary" url="/pages/cat/create/create" open-type="navigate">创建流浪猫档案</navigator>
+    </view>
+  </view>
+</view>

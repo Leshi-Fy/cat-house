@@ -1,0 +1,132 @@
+<!--
+  猫屋首页 - 探探式卡片浏览附近流浪猫（叠放 + 滑动切换）
+-->
+<view class="page page-with-tabbar">
+  <!-- 顶部状态栏 -->
+  <view class="header">
+    <view class="header-title">
+      <text class="title-text">🐱 猫屋</text>
+      <text class="title-desc" wx:if="{{location}}">附近流浪猫</text>
+    </view>
+    <view class="header-actions">
+      <view class="action-btn" bindtap="relocate">📍</view>
+      <view class="action-btn" bindtap="goCreateCat">＋</view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <view class="paw-loading">
+      <text class="paw-icon">🐾</text>
+      <text class="loading-text">正在寻找附近的猫咪...</text>
+    </view>
+  </view>
+
+  <!-- 探探卡片叠放区 -->
+  <view class="card-stack" wx:elif="{{currentCat}}">
+    <!-- 底层卡片（最多显示2张） -->
+    <!-- 第一张底层卡片：跟随拖拽实时过渡 -->
+    <view 
+      wx:if="{{bottomCards.length > 0}}"
+      class="cat-card stack-card"
+      style="z-index: {{bottomCards[0]._zIndex}}; transform: scale({{nextScale}}) translate({{nextTranslateX}}px, {{nextTranslateY}}px) rotate({{nextRotate}}deg); opacity: {{nextOpacity}}; transition: {{isAnimating ? 'transform 0.35s cubic-bezier(0.2, 0, 0, 1), opacity 0.35s ease' : 'none'}};"
+    >
+      <image class="cat-card-bg" src="{{bottomCards[0].photos[0]}}" mode="aspectFill" />
+      <view class="card-overlay"></view>
+      <view class="cat-info-overlay">
+        <view class="cat-name-row">
+          <text class="cat-name">{{bottomCards[0].name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 第二张底层卡片：静态偏移（不跟随拖拽） -->
+    <view 
+      wx:if="{{bottomCards.length > 1}}"
+      class="cat-card stack-card"
+      style="z-index: {{bottomCards[1]._zIndex}}; transform: scale({{bottomCards[1]._scale}}) translate({{bottomCards[1]._translateX}}px, {{bottomCards[1]._translateY}}px) rotate({{bottomCards[1]._rotate}}deg); opacity: {{bottomCards[1]._opacity}};"
+    >
+      <image class="cat-card-bg" src="{{bottomCards[1].photos[0]}}" mode="aspectFill" />
+      <view class="card-overlay"></view>
+      <view class="cat-info-overlay">
+        <view class="cat-name-row">
+          <text class="cat-name">{{bottomCards[1].name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 顶层可拖拽卡片 -->
+    <view 
+      class="cat-card draggable-card"
+      style="z-index: 10; transform: translate({{dragOffsetX}}px, {{dragOffsetY}}px) rotate({{dragRotation}}deg); opacity: {{dragOpacity}}; transition: {{isAnimating ? 'all 0.35s cubic-bezier(0.2, 0, 0, 1)' : 'none'}};"
+    >
+      <image 
+        class="cat-card-bg cat-card-draggable" 
+        src="{{currentCat.photos[0]}}" 
+        mode="aspectFill"
+        binderror="onPhotoError"
+        catchtouchstart="onTouchStart"
+        catchtouchmove="onTouchMove"
+        catchtouchend="onTouchEnd"
+      />
+      
+      <!-- 渐变遮罩 -->
+      <view class="card-overlay"></view>
+
+      <!-- 滑动提示标签（左：跳过 / 右：看看） -->
+      <view class="swipe-tag skip-tag" style="opacity: {{skipTagOpacity}}; transform: rotate(-20deg);">
+        跳过
+      </view>
+      <view class="swipe-tag like-tag" style="opacity: {{likeTagOpacity}}; transform: rotate(20deg);">
+        看看
+      </view>
+      
+      <!-- 多张照片标记 -->
+      <view class="photo-count" wx:if="{{currentCat.photos.length > 1}}">
+        <text class="photo-count-icon">📷</text>
+        <text class="photo-count-text">{{currentCat.photos.length}}</text>
+      </view>
+      
+      <!-- 猫咪信息 - 左下角 -->
+      <view class="cat-info-overlay">
+        <view class="cat-name-row">
+          <text class="cat-name">{{currentCat.name}}</text>
+          <text class="cat-gender" wx:if="{{currentCat.gender === 'male'}}">♂</text>
+          <text class="cat-gender female" wx:elif="{{currentCat.gender === 'female'}}">♀</text>
+          <text class="cat-age" wx:if="{{currentCat.age}}">· {{currentCat.age}}</text>
+        </view>
+        <view class="cat-address" wx:if="{{currentCat.distance}}">
+          <text class="address-icon">📍</text>
+          <text class="address-text">{{currentCat.distance}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮：移到 card-stack 外，避免被 catchtouchmove 拦截 -->
+  <view class="action-row" wx:if="{{currentCat}}">
+    <view class="swipe-btn skip-btn" bindtap="onSwipeLeft">
+      <text class="btn-icon">✕</text>
+      <text class="btn-label">跳过</text>
+    </view>
+    <view class="swipe-btn like-btn" bindtap="onSwipeRight">
+      <text class="btn-icon">❤️</text>
+      <text class="btn-label">看看</text>
+    </view>
+  </view>
+
+  <!-- 空状态引导 -->
+  <view class="empty-guide" wx:else>
+    <view class="empty-icon">🐱</view>
+    <view class="empty-title">附近还没有流浪猫档案</view>
+    <view class="empty-desc">发现流浪猫？帮它建立一个档案吧！</view>
+    <view class="empty-actions">
+      <button class="btn-primary guide-btn" bindtap="goCreateCat">
+        🐾 创建流浪猫档案
+      </button>
+      <button class="btn-outline guide-btn" bindtap="relocate">
+        📍 重新定位
+      </button>
+    </view>
+  </view>
+</view>

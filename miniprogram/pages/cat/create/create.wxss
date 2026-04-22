@@ -1,0 +1,290 @@
+/**
+ * 创建流浪猫档案 - 样式
+ */
+
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.container {
+  padding: 24rpx 32rpx;
+}
+
+/* 段落 */
+.section {
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+  box-shadow: var(--shadow-card);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 24rpx;
+}
+
+/* 照片网格 */
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.photo-item {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.photo-img {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44rpx;
+  height: 44rpx;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 0 12rpx;
+}
+
+.photo-add {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: var(--radius-sm);
+  border: 2rpx dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.add-icon {
+  font-size: 48rpx;
+  color: var(--color-primary);
+}
+
+.add-text {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+}
+
+.photo-hint {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+  margin-top: 16rpx;
+}
+
+/* 表单 */
+.form-item {
+  margin-bottom: 28rpx;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 0 24rpx;
+  font-size: 28rpx;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 140rpx;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.form-picker {
+  width: 100%;
+  height: 80rpx;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  color: var(--color-text);
+}
+
+.form-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.form-item.half {
+  flex: 1;
+}
+
+/* 地图 */
+.map-wrapper {
+  position: relative;
+  margin-bottom: 16rpx;
+}
+
+.cat-map {
+  width: 100%;
+  height: 480rpx;
+  border-radius: var(--radius-sm);
+}
+
+/* 中心大头针覆盖层 */
+.pin-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pin-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 4rpx 12rpx rgba(0, 0, 0, 0.3));
+  animation: pinBounce 0.4s ease-out;
+}
+
+.pin-tail {
+  width: 10rpx;
+  height: 28rpx;
+  background: linear-gradient(to bottom, rgba(255, 107, 43, 0.9), rgba(255, 107, 43, 0.4));
+  border-radius: 4rpx 4rpx 4rpx 4rpx;
+}
+
+.pin-head {
+  width: 72rpx;
+  height: 72rpx;
+  background: linear-gradient(135deg, #FF9F5A, #FF6B2B);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 4rpx 12rpx rgba(255, 107, 43, 0.4);
+}
+
+/* 大头针下方脉冲动画 */
+.pin-pulse {
+  width: 24rpx;
+  height: 8rpx;
+  background: rgba(255, 107, 43, 0.3);
+  border-radius: 50%;
+  margin-top: 4rpx;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pinBounce {
+  0% { transform: translateY(-30rpx); opacity: 0; }
+  60% { transform: translateY(4rpx); }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(2.5); opacity: 0; }
+}
+
+.map-hint {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.map-coords {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+  text-align: center;
+}
+
+/* 活动范围 */
+.radius-section {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.radius-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.radius-label {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.radius-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.radius-slider {
+  margin: 0 8rpx;
+}
+
+.radius-presets {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.preset-btn {
+  flex: 1;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.preset-btn.active {
+  color: var(--color-primary);
+  background: rgba(255, 140, 66, 0.1);
+  border-color: var(--color-primary);
+}
+
+/* 提交 */
+.submit-wrap {
+  padding-top: 16rpx;
+}
+
+.submit-btn {
+  width: 100%;
+}

@@ -1,0 +1,9 @@
+{
+  "name": "merge-operations",
+  "version": "1.0.0",
+  "description": "猫咪档案合并操作",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

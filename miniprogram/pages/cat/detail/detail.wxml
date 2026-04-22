@@ -1,0 +1,177 @@
+<!--
+  流浪猫详情页
+-->
+<view class="page">
+  <!-- 照片轮播 -->
+  <swiper 
+    class="photo-swiper" 
+    wx:if="{{cat && cat.photos.length > 0}}"
+    indicator-dots="{{cat.photos.length > 1}}"
+    indicator-color="rgba(255,255,255,0.4)"
+    indicator-active-color="#FF8C42"
+    circular
+    bindchange="onSwiperChange"
+  >
+    <swiper-item wx:for="{{cat.photos}}" wx:key="index">
+      <image 
+        class="swiper-photo" 
+        src="{{item}}" 
+        mode="aspectFill" 
+        bindtap="onPreviewPhoto"
+      />
+    </swiper-item>
+    <view class="photo-counter" bindtap="onPreviewPhoto">
+      {{currentPhotoIndex + 1}}/{{cat.photos.length}}
+    </view>
+  </swiper>
+
+  <view class="container" wx:if="{{cat && !loading}}">
+    <!-- 名字 & 基本信息 -->
+    <view class="info-card card">
+      <view class="name-row">
+        <text class="cat-name">{{cat.name}}</text>
+        <text class="gender-badge {{cat.gender === 'male' ? 'male' : cat.gender === 'female' ? 'female' : ''}}">
+          {{cat.genderText}}
+        </text>
+      </view>
+
+      <!-- 别名（如有合并） -->
+      <view class="aliases" wx:if="{{cat.aliases && cat.aliases.length > 0}}">
+        <text class="alias-text">又名：{{cat.aliases.join(' / ')}}</text>
+      </view>
+
+      <!-- 状态标签 -->
+      <view class="tag-row">
+        <text class="tag {{cat.healthStatus === 'good' ? 'tag-success' : cat.healthStatus === 'injured' ? 'tag-danger' : 'tag-warning'}}">
+          {{cat.healthText}}
+        </text>
+        <text class="tag {{cat.sterilized === 'yes' ? 'tag-success' : 'tag-primary'}}">
+          {{cat.sterilizedText}}
+        </text>
+        <text class="tag tag-primary" wx:if="{{cat.age}}">约{{cat.age}}</text>
+      </view>
+
+      <!-- 描述 -->
+      <view class="desc" wx:if="{{cat.description}}">
+        <text class="desc-text">{{cat.description}}</text>
+      </view>
+
+      <view class="divider"></view>
+
+    <!-- 元信息 -->
+    <view class="meta-grid">
+      <!-- 流浪猫专属字段 -->
+      <block wx:if="{{catType === 'stray'}}">
+        <view class="meta-cell">
+          <text class="meta-label">最后目击</text>
+          <text class="meta-value">{{cat.lastSeenText || '未知'}}</text>
+        </view>
+        <view class="meta-cell">
+          <text class="meta-label">创建者</text>
+          <text class="meta-value">{{cat.creatorName || '匿名'}}</text>
+        </view>
+        <view class="meta-cell" wx:if="{{cat.areaRadius}}">
+          <text class="meta-label">活动范围</text>
+          <text class="meta-value">{{cat.areaRadius}}m</text>
+        </view>
+      </block>
+      <!-- 家养猫专属字段 -->
+      <block wx:if="{{catType === 'home'}}">
+        <view class="meta-cell" wx:if="{{cat.breed}}">
+          <text class="meta-label">品种</text>
+          <text class="meta-value">{{cat.breed}}</text>
+        </view>
+        <view class="meta-cell" wx:if="{{cat.personality}}">
+          <text class="meta-label">性格</text>
+          <text class="meta-value">{{cat.personality}}</text>
+        </view>
+        <view class="meta-cell" wx:if="{{cat.birthday}}">
+          <text class="meta-label">生日</text>
+          <text class="meta-value">{{cat.birthday}}</text>
+        </view>
+      </block>
+    </view>
+    </view>
+
+    <!-- 活动区域地图（仅流浪猫） -->
+    <view class="location-card card" wx:if="{{catType === 'stray' && cat.location}}">
+      <view class="card-title">📍 活动区域</view>
+      <map 
+        class="location-map"
+        latitude="{{mapLatitude}}"
+        longitude="{{mapLongitude}}"
+        scale="{{mapScale}}"
+        markers="{{markers}}"
+        circles="{{circles}}"
+        show-location
+      />
+      <button class="btn-outline location-btn" bindtap="onOpenLocation">
+        导航到这里
+      </button>
+    </view>
+
+    <!-- 合并记录（仅流浪猫） -->
+    <view class="merge-card card" wx:if="{{catType === 'stray' && cat.mergeChain && cat.mergeChain.length > 0}}">
+      <view class="card-title">🔗 档案合并记录</view>
+      <view class="merge-item" wx:for="{{cat.mergeChain}}" wx:key="mergeId">
+        <text class="merge-text">{{item.catName}} 的档案已合并于此</text>
+        <text class="merge-time">{{item.mergedByName}} · {{item.mergedTime}}</text>
+      </view>
+    </view>
+
+    <!-- 众筹列表（仅流浪猫） -->
+    <view class="crowd-list-card card" wx:if="{{catType === 'stray' && crowdfunds.length > 0}}">
+      <view class="card-title">❤️ 爱心众筹 <text class="crowd-count">{{crowdfunds.length}}个</text></view>
+      <view class="crowd-item" wx:for="{{crowdfunds}}" wx:key="_id" bindtap="onCrowdDetail" data-id="{{item._id}}">
+        <view class="crowd-item-top">
+          <text class="crowd-type-tag tag tag-primary">{{item.typeText}}</text>
+          <text class="crowd-status {{item.status === 'ongoing' ? 'status-active' : item.status === 'completed' ? 'status-done' : ''}}">{{item.statusText}}</text>
+          <text class="crowd-time">{{item.timeText}}</text>
+        </view>
+        <text class="crowd-desc text-ellipsis">{{item.description}}</text>
+        <view class="crowd-progress">
+          <view class="crowd-bar"><view class="crowd-bar-fill" style="width: {{item.percent}}%"></view></view>
+          <view class="crowd-money">
+            <text class="crowd-raised">¥{{item.raisedDisplay}}</text>
+            <text class="crowd-target">目标 ¥{{item.targetDisplay}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部操作（仅流浪猫） -->
+    <view class="bottom-actions safe-bottom" wx:if="{{catType === 'stray'}}">
+      <button class="btn-outline merge-btn" bindtap="onMergeTap" wx:if="{{!isOwner}}">
+        🔗 申请合并
+      </button>
+      <button class="btn-primary crowd-btn" bindtap="onCrowdTap">
+        ❤️ 发起众筹
+      </button>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <text class="paw-loading-icon">🐾</text>
+  </view>
+
+  <!-- 合并弹窗 -->
+  <view class="modal-mask" wx:if="{{showMergeModal}}" bindtap="onCancelMerge">
+    <view class="modal-content" catchtap="">
+      <view class="modal-title">申请合并猫咪档案</view>
+      <view class="modal-desc">
+        你认为「{{cat.name}}」和你创建的某只流浪猫是同一只猫，申请合并后由对方审核。审核通过后，两个档案将合为一个。
+      </view>
+      <textarea 
+        class="modal-textarea" 
+        placeholder="说明为什么认为它们是同一只猫..."
+        value="{{mergeNote}}" 
+        bindinput="onMergeNoteInput"
+      />
+      <view class="modal-actions">
+        <button class="btn-outline modal-btn" bindtap="onCancelMerge">取消</button>
+        <button class="btn-primary modal-btn" bindtap="onSubmitMerge">选择我的猫咪</button>
+      </view>
+    </view>
+  </view>
+</view>

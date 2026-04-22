@@ -1,0 +1,55 @@
+<!--
+  捐款页
+-->
+<view class="page">
+  <view class="container" wx:if="{{crowd}}">
+    <view class="header-card card">
+      <text class="card-title">为 {{crowd.catName || '流浪猫'}} 献爱心</text>
+      <text class="card-desc">{{crowd.description || '帮助流浪猫'}}</text>
+      <view class="progress-info">
+        <text class="raised">已筹 ¥{{crowd.raisedDisplay || '0.00'}}</text>
+        <text class="target">/ ¥{{crowd.targetDisplay || '0.00'}}</text>
+      </view>
+    </view>
+
+    <!-- 预设金额 -->
+    <view class="preset-section card">
+      <view class="section-title">选择金额</view>
+      <view class="preset-grid">
+        <view 
+          class="preset-item {{selectedPreset === item ? 'active' : ''}}"
+          wx:for="{{presetAmounts}}"
+          wx:key="*this"
+          bindtap="onSelectPreset"
+          data-amount="{{item}}"
+        >
+          <text class="preset-yuan">¥</text>
+          <text class="preset-num">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 自定义金额 -->
+    <view class="custom-section card">
+      <view class="section-title">自定义金额</view>
+      <view class="amount-wrap">
+        <text class="prefix">¥</text>
+        <input 
+          class="amount-input" 
+          type="digit" 
+          placeholder="输入金额" 
+          value="{{amount}}" 
+          bindinput="onInputAmount"
+        />
+      </view>
+    </view>
+
+    <!-- 确认 -->
+    <view class="confirm-wrap safe-bottom">
+      <button class="btn-primary confirm-btn" bindtap="onConfirmDonate" disabled="{{submitting || !amount}}">
+        {{submitting ? '处理中...' : '❤️ 确认捐款 ¥' + (amount || '0')}}
+      </button>
+      <text class="tip-text">* 当前为演示模式，正式上线需接入微信支付</text>
+    </view>
+  </view>
+</view>

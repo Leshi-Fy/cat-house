@@ -1,0 +1,320 @@
+/**
+ * 流浪猫详情页样式
+ */
+
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+/* 照片轮播 */
+.photo-swiper {
+  width: 100%;
+  height: 560rpx;
+  position: relative;
+}
+
+.swiper-photo {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-counter {
+  position: absolute;
+  bottom: 24rpx;
+  right: 32rpx;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+}
+
+/* 信息卡片 */
+.info-card {
+  margin-top: -40rpx;
+  position: relative;
+  z-index: 10;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.cat-name {
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.gender-badge {
+  font-size: 24rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+  background: var(--color-bg);
+}
+
+.gender-badge.male { color: #5B9BD5; }
+.gender-badge.female { color: #FF85A2; }
+
+.aliases {
+  margin-bottom: 12rpx;
+}
+
+.alias-text {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.desc {
+  margin-bottom: 8rpx;
+}
+
+.desc-text {
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: var(--color-text-secondary);
+}
+
+/* 元信息网格 */
+.meta-grid {
+  display: flex;
+  justify-content: space-around;
+}
+
+.meta-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.meta-label {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+}
+
+.meta-value {
+  font-size: 26rpx;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* 地图卡片 */
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+
+.location-map {
+  width: 100%;
+  height: 320rpx;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16rpx;
+}
+
+.location-btn {
+  width: 100% !important;
+  font-size: 28rpx !important;
+}
+
+/* 合并记录 */
+.merge-item {
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid var(--color-border);
+}
+
+.merge-item:last-child {
+  border-bottom: none;
+}
+
+.merge-text {
+  font-size: 26rpx;
+  color: var(--color-text);
+  display: block;
+}
+
+.merge-time {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+  margin-top: 4rpx;
+  display: block;
+}
+
+/* 底部操作 */
+.bottom-actions {
+  display: flex;
+  gap: 20rpx;
+  padding-top: 24rpx;
+}
+
+.merge-btn, .crowd-btn {
+  flex: 1;
+  font-size: 28rpx !important;
+}
+
+/* 加载中 */
+.loading-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+}
+
+.paw-loading-icon {
+  font-size: 80rpx;
+  animation: pawBounce 1.2s ease-in-out infinite;
+}
+
+@keyframes pawBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20rpx); }
+}
+
+/* 弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+}
+
+.modal-content {
+  width: 100%;
+  background: var(--color-white);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 40rpx 32rpx calc(40rpx + env(safe-area-inset-bottom));
+}
+
+.modal-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+.modal-desc {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24rpx;
+}
+
+.modal-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 20rpx;
+  font-size: 28rpx;
+  margin-bottom: 24rpx;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.modal-btn {
+  flex: 1;
+}
+
+/* 众筹列表 */
+.crowd-list-card {
+  padding: 28rpx;
+}
+
+.crowd-count {
+  font-size: 22rpx;
+  font-weight: 400;
+  color: var(--color-text-light);
+}
+
+.crowd-item {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--color-border);
+}
+
+.crowd-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.crowd-item-top {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.crowd-status {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+}
+
+.crowd-status.status-active {
+  color: #4CAF50;
+}
+
+.crowd-status.status-done {
+  color: var(--color-text-light);
+}
+
+.crowd-time {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+  margin-left: auto;
+}
+
+.crowd-desc {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  display: block;
+  margin-bottom: 16rpx;
+  line-height: 1.5;
+}
+
+.crowd-bar {
+  height: 12rpx;
+  background: var(--color-bg);
+  border-radius: 6rpx;
+  overflow: hidden;
+  margin-bottom: 8rpx;
+}
+
+.crowd-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF8C42, #FF6B6B);
+  border-radius: 6rpx;
+  transition: width 0.3s ease;
+}
+
+.crowd-money {
+  display: flex;
+  justify-content: space-between;
+}
+
+.crowd-raised {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.crowd-target {
+  font-size: 24rpx;
+  color: var(--color-text-light);
+}

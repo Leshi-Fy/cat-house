@@ -1,0 +1,66 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/community/community",
+    "pages/community/post/post",
+    "pages/community/detail/detail",
+    "pages/user/profile/profile",
+    "pages/user/my-feeds/my-feeds",
+    "pages/user/my-cats/my-cats",
+    "pages/user/my-strays/my-strays",
+    "pages/user/my-crowd/my-crowd",
+    "pages/user/edit-profile/edit-profile",
+    "pages/cat/explore/explore",
+    "pages/cat/create/create",
+    "pages/cat/detail/detail",
+    "pages/crowd/detail/detail",
+    "pages/crowd/create/create",
+    "pages/crowd/donate/donate",
+    "pages/crowd/receipt/receipt",
+    "pages/user/merge-review/merge-review"
+  ],
+  "window": {
+    "backgroundColor": "#FFF8F0",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FF8C42",
+    "navigationBarTitleText": "猫屋",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#FF8C42",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "猫屋",
+        "iconPath": "icons/tab-cat.png",
+        "selectedIconPath": "icons/tab-cat-active.png"
+      },
+      {
+        "pagePath": "pages/community/community",
+        "text": "社区",
+        "iconPath": "icons/tab-community.png",
+        "selectedIconPath": "icons/tab-community-active.png"
+      },
+      {
+        "pagePath": "pages/user/profile/profile",
+        "text": "我的",
+        "iconPath": "icons/tab-user.png",
+        "selectedIconPath": "icons/tab-user-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "需要获取你的位置信息来展示附近流浪猫和标注活动区域"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

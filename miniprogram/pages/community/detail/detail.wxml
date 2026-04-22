@@ -1,0 +1,151 @@
+<!--
+  动态详情页 - 评论互动
+-->
+<view class="page" wx:if="{{feed}}">
+  <!-- 动态内容 -->
+  <view class="feed-detail">
+    <!-- 作者信息 -->
+    <view class="feed-header">
+      <image class="user-avatar" src="{{feed.userAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+      <view class="user-info">
+        <text class="user-name">{{feed.userName || '匿名用户'}}</text>
+        <text class="feed-time">{{feed.formattedTime}}</text>
+      </view>
+      <!-- 删除（仅作者可见，后续可加） -->
+    </view>
+
+    <!-- 正文 -->
+    <view class="feed-content">
+      <text class="feed-text">{{feed.content}}</text>
+
+      <!-- 图片 -->
+      <view wx:if="{{feed.photos && feed.photos.length > 0}}" class="feed-images">
+        <image
+          wx:for="{{feed.photos}}"
+          wx:for-item="img"
+          wx:key="*this"
+          class="feed-image {{feed.photos.length === 1 ? 'single' : ''}}"
+          src="{{img}}"
+          mode="aspectFill"
+          bindtap="previewImage"
+          data-url="{{img}}"
+          data-urls="{{feed.photos}}"
+        />
+      </view>
+    </view>
+
+    <!-- 关联猫咪 -->
+    <view wx:if="{{feed.catInfo}}" class="linked-cat" bindtap="goToCatDetail" data-id="{{feed.catId}}">
+      <image class="cat-thumb" src="{{feed.catInfo.photos[0]}}" mode="aspectFill" />
+      <view class="cat-info">
+        <text class="cat-name">{{feed.catInfo.name}}</text>
+        <text class="cat-breed" wx:if="{{feed.catInfo.breed}}">{{feed.catInfo.breed}}</text>
+      </view>
+      <text class="link-arrow">›</text>
+    </view>
+
+    <!-- 互动栏 -->
+    <view class="feed-actions">
+      <view class="action-item like-btn {{feed.isLiked ? 'active' : ''}}" bindtap="toggleLike">
+        <text class="action-icon">{{feed.isLiked ? '♥' : '♡'}}</text>
+        <text class="action-text">{{feed.likeCount || 0}}</text>
+      </view>
+      <view class="action-item">
+        <text class="action-icon">💬</text>
+        <text class="action-text">{{feed.commentCount || 0}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分割线 -->
+  <view class="divider"></view>
+
+  <!-- 评论区域 -->
+  <view class="comments-section">
+    <view class="section-title">
+      <text class="section-title-text">评论</text>
+      <text class="comment-count" wx:if="{{comments.length > 0}}">{{comments.length}}</text>
+    </view>
+
+    <!-- 评论列表 -->
+    <view class="comment-list" wx:if="{{comments.length > 0}}">
+      <view wx:for="{{comments}}" wx:key="_id" class="comment-group">
+        <!-- 一级评论 -->
+        <view class="comment-item">
+          <image class="comment-avatar" src="{{item.authorAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+          <view class="comment-body">
+            <view class="comment-header">
+              <text class="comment-name">{{item.authorName}}</text>
+              <text class="comment-time">{{item.formattedTime}}</text>
+            </view>
+            <text class="comment-text">{{item.content}}</text>
+            <view class="comment-actions">
+              <text class="reply-btn" bindtap="onReplyTo" data-id="{{item._id}}" data-name="{{item.authorName}}">回复</text>
+              <text class="delete-btn" wx:if="{{item.isAuthor}}" bindtap="onDeleteComment" data-id="{{item._id}}">删除</text>
+            </view>
+
+            <!-- 回复列表（默认显示2条） -->
+            <view wx:if="{{item.replies.length > 0}}" class="replies">
+              <view wx:for="{{item.replies}}" wx:for-item="reply" wx:key="_id" class="reply-item">
+                <image class="reply-avatar" src="{{reply.authorAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+                <view class="reply-body">
+                  <text class="reply-name">{{reply.authorName}}</text>
+                  <text class="reply-text">{{reply.content}}</text>
+                  <view class="reply-meta">
+                    <text class="reply-time">{{reply.formattedTime}}</text>
+                    <text class="reply-btn" bindtap="onReplyTo" data-id="{{item._id}}" data-name="{{reply.authorName}}">回复</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 展开更多回复 -->
+              <view
+                wx:if="{{item.replyCount > 2 && !showAllReplies[item._id]}}"
+                class="more-replies"
+                bindtap="onViewAllReplies"
+                data-id="{{item._id}}"
+              >
+                <text class="more-replies-text">展开全部 {{item.replyCount}} 条回复 ›</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空评论 -->
+    <view class="empty-comments" wx:else>
+      <text class="empty-comments-text">还没有评论，来说两句吧~</text>
+    </view>
+  </view>
+</view>
+
+<!-- 加载中 -->
+<view class="loading-state" wx:if="{{isLoading}}">
+  <text>加载中...</text>
+</view>
+
+<!-- 底部评论输入栏 -->
+<view class="comment-bar safe-bottom" wx:if="{{feed}}">
+  <!-- 回复提示 -->
+  <view class="reply-hint" wx:if="{{replyTo}}">
+    <text class="reply-hint-text">回复 {{replyTo.authorName}}</text>
+    <text class="reply-hint-cancel" bindtap="cancelReply">✕</text>
+  </view>
+
+  <view class="comment-input-row">
+    <input
+      class="comment-input"
+      placeholder="{{placeholder}}"
+      value="{{commentText}}"
+      bindinput="onCommentInput"
+      bindconfirm="submitComment"
+      confirm-type="send"
+      focus="{{!!replyTo}}"
+      bindfocus="onCommentFocus"
+    />
+    <view class="send-btn {{hasContent ? 'active' : ''}} {{isSubmitting ? 'submitting' : ''}}" bindtap="submitComment">
+      <text class="send-btn-text">{{isSubmitting ? '...' : '发送'}}</text>
+    </view>
+  </view>
+</view>

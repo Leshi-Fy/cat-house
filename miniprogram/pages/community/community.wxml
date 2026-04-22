@@ -1,0 +1,121 @@
+<!--pages/community/community.wxml-->
+<view class="container">
+  <view class="item-list">
+    <view wx:for="{{items}}" wx:key="_id">
+
+      <!-- 众筹卡片 -->
+      <view wx:if="{{item.type === 'crowd'}}" class="card crowd-card" bindtap="goToCrowdDetail" data-id="{{item._id}}">
+        <view class="crowd-card-header">
+          <view class="crowd-cat-info">
+            <image class="crowd-cat-avatar" src="{{item.catPhoto || item.photos[0] || '/images/default-cat.png'}}" mode="aspectFill" />
+            <view class="crowd-cat-text">
+              <text class="crowd-cat-name">{{item.catName}}</text>
+              <text class="crowd-meta">{{item.typeText}} · {{item.formattedTime}}</text>
+            </view>
+          </view>
+          <view class="crowd-status-badge">进行中</view>
+        </view>
+
+        <text class="crowd-desc">{{item.description}}</text>
+
+        <view wx:if="{{item.photos && item.photos.length > 0}}" class="crowd-photos">
+          <image 
+            wx:for="{{item.photos}}" 
+            wx:for-item="img" 
+            wx:key="*this"
+            class="crowd-photo {{item.photos.length === 1 ? 'single' : ''}}" 
+            src="{{img}}" 
+            mode="aspectFill"
+            lazy-load
+            bindtap="previewImage"
+            data-url="{{img}}"
+            data-urls="{{item.photos}}"
+          />
+        </view>
+
+        <view class="crowd-progress-section">
+          <view class="crowd-progress-bar">
+            <view class="crowd-progress-fill" style="width: {{item.percent}}%"></view>
+          </view>
+          <view class="crowd-amount-row">
+            <text class="crowd-raised">已筹 ¥{{item.raisedDisplay}}</text>
+            <text class="crowd-target">目标 ¥{{item.targetDisplay}}</text>
+          </view>
+        </view>
+
+        <view class="crowd-donate-btn" catchtap="goToCrowdDetail" data-id="{{item._id}}">
+          <text>爱心捐款</text>
+        </view>
+      </view>
+
+      <!-- 动态卡片 -->
+      <view wx:else class="card feed-card" bindtap="goToDetail" data-id="{{item._id}}">
+        <view class="feed-header">
+          <image class="user-avatar" src="{{item.userAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+          <view class="user-info">
+            <text class="user-name">{{item.userName || '匿名用户'}}</text>
+            <text class="feed-time">{{item.formattedTime}}</text>
+          </view>
+        </view>
+
+        <!-- 关联的猫咪 -->
+        <view wx:if="{{item.catInfo}}" class="linked-cat" catchtap="goToCatDetail" data-id="{{item.catId}}">
+          <image class="cat-thumb" src="{{item.catInfo.photos[0]}}" mode="aspectFill" />
+          <view class="cat-info">
+            <text class="cat-name">{{item.catInfo.name}}</text>
+            <text class="cat-breed">{{item.catInfo.breed}}</text>
+          </view>
+          <text class="link-arrow">›</text>
+        </view>
+
+        <view class="feed-content">
+          <text class="feed-text">{{item.content}}</text>
+          <view wx:if="{{item.photos && item.photos.length > 0}}" class="feed-images">
+            <image 
+              wx:for="{{item.photos}}" 
+              wx:for-item="img" 
+              wx:key="*this"
+              class="feed-image {{item.photos.length === 1 ? 'single' : ''}}" 
+              src="{{img}}" 
+              mode="aspectFill"
+              lazy-load
+              bindtap="previewImage"
+              data-url="{{img}}"
+              data-urls="{{item.photos}}"
+            />
+          </view>
+        </view>
+
+        <view class="feed-actions">
+          <view class="action-btn {{item.isLiked ? 'active' : ''}}" catchtap="toggleLike" data-id="{{item._id}}">
+            <text class="action-icon">♥</text>
+            <text class="action-count">{{item.likeCount || 0}}</text>
+          </view>
+          <view class="action-btn" catchtap="goToDetail" data-id="{{item._id}}">
+            <text class="action-icon">💬</text>
+            <text class="action-count">{{item.commentCount || 0}}</text>
+          </view>
+        </view>
+      </view>
+
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!isLoading && items.length === 0}}">
+      <text>还没有内容，来发布第一条吧！</text>
+    </view>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{!isLoading && hasMore && items.length > 0}}">
+    <text bindtap="loadMore">加载更多</text>
+  </view>
+  <view class="no-more" wx:if="{{!hasMore && items.length > 0}}">
+    <text>没有更多了</text>
+  </view>
+</view>
+
+<!-- 浮动发布按钮 -->
+<view class="fab-post" bindtap="goToPost">
+  <text class="fab-icon">+</text>
+</view>

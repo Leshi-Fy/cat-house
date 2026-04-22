@@ -1,0 +1,9 @@
+{
+  "name": "payment-operations",
+  "version": "1.0.0",
+  "description": "支付操作云函数（预留微信支付接口）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

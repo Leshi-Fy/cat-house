@@ -1,0 +1,300 @@
+/* pages/community/post/post.wxss */
+.container {
+  padding: 30rpx;
+  background: #FFF8F0;
+  min-height: 100vh;
+}
+
+.section {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.change-btn {
+  font-size: 26rpx;
+  color: #FF8C42;
+}
+
+/* 选择猫咪 */
+.select-cat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx;
+  border: 2rpx dashed #ddd;
+  border-radius: 16rpx;
+  background: #fafafa;
+}
+
+.select-icon {
+  font-size: 48rpx;
+  color: #FF8C42;
+  margin-right: 16rpx;
+}
+
+.select-text {
+  font-size: 30rpx;
+  color: #666;
+}
+
+/* 已选猫咪 */
+.selected-cat {
+  display: flex;
+  align-items: center;
+  background: #FFF5F0;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.cat-image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+  margin-right: 20rpx;
+  background: #f0f0f0;
+}
+
+.cat-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cat-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.cat-breed {
+  font-size: 26rpx;
+  color: #666;
+  margin-top: 8rpx;
+}
+
+.remove-btn {
+  font-size: 40rpx;
+  color: #999;
+  padding: 20rpx;
+}
+
+/* 内容输入 */
+.content-input {
+  width: 100%;
+  min-height: 200rpx;
+  font-size: 30rpx;
+  line-height: 1.6;
+  color: #333;
+}
+
+.word-count {
+  display: block;
+  text-align: right;
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 16rpx;
+}
+
+/* 图片上传 */
+.image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.image-item {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+}
+
+.uploaded-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+  background: #f0f0f0;
+}
+
+.delete-btn {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  width: 40rpx;
+  height: 40rpx;
+  background: #FF6B35;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+}
+
+.upload-btn {
+  width: 200rpx;
+  height: 200rpx;
+  border: 2rpx dashed #ddd;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+}
+
+.upload-icon {
+  font-size: 60rpx;
+  color: #999;
+}
+
+/* 提交按钮 */
+.submit-section {
+  padding: 40rpx 0;
+}
+
+.submit-btn {
+  background: #ccc;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  padding: 30rpx 0;
+  border-radius: 50rpx;
+  border: none;
+}
+
+.submit-btn.active {
+  background: linear-gradient(135deg, #FF8C42 0%, #FF6B35 100%);
+}
+
+/* 猫咪选择弹窗 */
+.cat-selector {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+
+.cat-selector.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.selector-content {
+  width: 100%;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 40rpx 40rpx 0 0;
+  padding: 30rpx;
+}
+
+.selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.selector-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  font-size: 48rpx;
+  color: #999;
+  padding: 10rpx;
+}
+
+/* 搜索框 */
+.search-box {
+  margin-bottom: 30rpx;
+}
+
+.search-input {
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 20rpx 30rpx;
+  font-size: 30rpx;
+}
+
+/* 猫咪分组 */
+.cat-group {
+  margin-bottom: 30rpx;
+}
+
+.group-title {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+  padding-left: 10rpx;
+}
+
+.cat-list {
+  max-height: 400rpx;
+}
+
+.cat-option {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  background: #fafafa;
+}
+
+.cat-option:active {
+  background: #f0f0f0;
+}
+
+.option-image {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 12rpx;
+  margin-right: 20rpx;
+  background: #f0f0f0;
+}
+
+.option-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.option-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.option-breed {
+  font-size: 26rpx;
+  color: #666;
+  margin-top: 4rpx;
+}
+
+.empty-cats {
+  text-align: center;
+  padding: 60rpx;
+  color: #999;
+  font-size: 30rpx;
+}

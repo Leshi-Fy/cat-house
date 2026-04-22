@@ -1,0 +1,23 @@
+.page { min-height: 100vh; background: var(--color-bg); }
+.container { padding: 24rpx 32rpx; }
+
+.header-card { text-align: center; }
+.card-title { font-size: 34rpx; font-weight: 600; display: block; margin-bottom: 12rpx; }
+.card-desc { font-size: 26rpx; color: var(--color-text-secondary); display: block; margin-bottom: 16rpx; }
+.progress-info { display: flex; justify-content: center; gap: 8rpx; }
+.raised { font-size: 32rpx; font-weight: 700; color: var(--color-primary); }
+.target { font-size: 26rpx; color: var(--color-text-light); }
+
+.preset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16rpx; }
+.preset-item { display: flex; align-items: baseline; justify-content: center; gap: 4rpx; padding: 24rpx 0; border-radius: var(--radius-sm); background: var(--color-bg); border: 2rpx solid transparent; }
+.preset-item.active { border-color: var(--color-primary); background: rgba(255, 140, 66, 0.08); }
+.preset-yuan { font-size: 24rpx; color: var(--color-primary); }
+.preset-num { font-size: 36rpx; font-weight: 700; color: var(--color-primary); }
+
+.amount-wrap { display: flex; align-items: center; background: var(--color-bg); border-radius: var(--radius-sm); padding: 0 24rpx; height: 88rpx; }
+.prefix { font-size: 36rpx; font-weight: 600; color: var(--color-primary); margin-right: 12rpx; }
+.amount-input { flex: 1; font-size: 36rpx; font-weight: 600; height: 88rpx; }
+
+.confirm-wrap { padding-top: 32rpx; }
+.confirm-btn { width: 100%; }
+.tip-text { display: block; text-align: center; font-size: 22rpx; color: var(--color-text-light); margin-top: 16rpx; }

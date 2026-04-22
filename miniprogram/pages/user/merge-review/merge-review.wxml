@@ -1,0 +1,94 @@
+<!--
+  合并审核页 - 收到的合并申请 / 发出的合并申请
+-->
+<view class="page">
+  <!-- Tab -->
+  <view class="tab-bar">
+    <view class="tab-item {{activeTab === 'received' ? 'active' : ''}}" bindtap="onTabChange" data-tab="received">
+      收到的申请
+      <text class="tab-badge" wx:if="{{pendingCount > 0}}">{{pendingCount}}</text>
+    </view>
+    <view class="tab-item {{activeTab === 'sent' ? 'active' : ''}}" bindtap="onTabChange" data-tab="sent">发出的申请</view>
+  </view>
+
+  <view class="container">
+    <!-- 收到的合并申请 -->
+    <view wx:if="{{activeTab === 'received'}}">
+      <view class="merge-item card" wx:for="{{receivedList}}" wx:key="_id">
+        <!-- 状态标签 -->
+        <view class="merge-header">
+          <text class="merge-status {{item.statusClass}}">{{item.statusText}}</text>
+          <text class="merge-time">{{item.timeText}}</text>
+        </view>
+
+        <!-- 合并内容 -->
+        <view class="merge-body">
+          <text class="merge-desc">{{item.fromUserName}} 认为这两只猫是同一只</text>
+          <text class="merge-note" wx:if="{{item.note}}">「{{item.note}}」</text>
+        </view>
+
+        <!-- 猫咪信息 -->
+        <view class="merge-cats">
+          <view class="cat-chip" bindtap="onTapCat" data-id="{{item.fromCatId}}">
+            <text class="cat-chip-label">TA的猫</text>
+            <text class="cat-chip-text">{{item.fromCatName}}</text>
+          </view>
+          <text class="merge-arrow">🔗</text>
+          <view class="cat-chip" bindtap="onTapCat" data-id="{{item.toCatId}}">
+            <text class="cat-chip-label">我的猫</text>
+            <text class="cat-chip-text">{{item.toCatName}}</text>
+          </view>
+        </view>
+
+        <!-- 操作按钮（仅待审核） -->
+        <view class="merge-actions" wx:if="{{item.status === 'pending'}}">
+          <button class="btn-outline action-btn reject-btn" catchtap="onReject" data-id="{{item._id}}">拒绝</button>
+          <button class="btn-primary action-btn approve-btn" catchtap="onApprove" data-id="{{item._id}}">同意合并</button>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{receivedList.length === 0 && !loading}}">
+        <text class="empty-icon">📨</text>
+        <text class="empty-text">暂无收到的合并申请</text>
+      </view>
+    </view>
+
+    <!-- 发出的合并申请 -->
+    <view wx:if="{{activeTab === 'sent'}}">
+      <view class="merge-item card" wx:for="{{sentList}}" wx:key="_id">
+        <view class="merge-header">
+          <text class="merge-status {{item.statusClass}}">{{item.statusText}}</text>
+          <text class="merge-time">{{item.timeText}}</text>
+        </view>
+
+        <view class="merge-body">
+          <text class="merge-desc">你申请将 {{item.fromCatName}} 与 {{item.toCatName}} 合并</text>
+          <text class="merge-note" wx:if="{{item.note}}">「{{item.note}}」</text>
+        </view>
+
+        <view class="merge-cats">
+          <view class="cat-chip" bindtap="onTapCat" data-id="{{item.fromCatId}}">
+            <text class="cat-chip-label">我的猫</text>
+            <text class="cat-chip-text">{{item.fromCatName}}</text>
+          </view>
+          <text class="merge-arrow">🔗</text>
+          <view class="cat-chip" bindtap="onTapCat" data-id="{{item.toCatId}}">
+            <text class="cat-chip-label">TA的猫</text>
+            <text class="cat-chip-text">{{item.toCatName}}</text>
+          </view>
+        </view>
+
+        <!-- 发出的申请只读，不显示操作按钮 -->
+        <view class="merge-hint" wx:if="{{item.status === 'pending'}}">
+          <text class="hint-text">等待对方审核中...</text>
+        </view>
+      </view>
+
+      <view class="empty-state" wx:if="{{sentList.length === 0 && !loading}}">
+        <text class="empty-icon">📋</text>
+        <text class="empty-text">暂无发出的合并申请</text>
+      </view>
+    </view>
+  </view>
+</view>

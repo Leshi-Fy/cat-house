@@ -1,0 +1,92 @@
+<!--pages/user/my-feeds/my-feeds.wxml-->
+<view class="container">
+  <!-- 顶部操作栏 -->
+  <view class="page-header">
+    <text class="page-title">我的动态</text>
+    <view class="post-btn" bindtap="goToPost">
+      <text class="post-icon">+</text>
+      <text class="post-text">发布</text>
+    </view>
+  </view>
+
+  <!-- 动态列表 -->
+  <view class="feed-list" wx:if="{{feeds.length > 0}}">
+    <view 
+      wx:for="{{feeds}}" 
+      wx:key="_id" 
+      class="feed-item"
+    >
+      <!-- 时间 + 操作按钮 -->
+      <view class="feed-header">
+        <text class="feed-time">{{item.formattedTime}}</text>
+        <view class="action-btns">
+          <view class="action-btn edit-btn" catchtap="editFeed" data-feed="{{item}}">编辑</view>
+          <view class="action-btn delete-btn" catchtap="deleteFeed" data-id="{{item._id}}" data-index="{{index}}">删除</view>
+        </view>
+      </view>
+
+      <!-- 关联猫咪 -->
+      <view wx:if="{{item.catInfo}}" class="linked-cat" catchtap="goToCatDetail" data-id="{{item.catId}}">
+        <image class="cat-thumb" src="{{item.catInfo.photos[0]}}" mode="aspectFill"/>
+        <view class="cat-info">
+          <text class="cat-name">{{item.catInfo.name}}</text>
+          <text class="cat-breed">{{item.catInfo.breed}}</text>
+        </view>
+        <text class="link-arrow">›</text>
+      </view>
+
+      <!-- 内容 -->
+      <view class="feed-content" bindtap="goToDetail" data-id="{{item._id}}">
+        <text class="feed-text">{{item.content}}</text>
+        <view class="feed-images" wx:if="{{item.photos && item.photos.length > 0}}">
+          <image 
+            wx:for="{{item.photos}}" 
+            wx:for-item="img"
+            wx:key="*this"
+            class="feed-image {{item.photos.length === 1 ? 'single' : ''}}"
+            src="{{img}}"
+            mode="aspectFill"
+            catchtap="previewImage"
+            data-url="{{img}}"
+            data-urls="{{item.photos}}"
+          />
+        </view>
+      </view>
+
+      <!-- 互动数据 -->
+      <view class="feed-stats">
+        <view class="stat-item">
+          <text class="stat-icon">👍</text>
+          <text class="stat-num">{{item.likeCount || 0}}</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-icon">💬</text>
+          <text class="stat-num">{{item.commentCount || 0}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{!isLoading && !hasMore && feeds.length > 0}}">
+    <text>没有更多了</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!isLoading && feeds.length === 0}}">
+    <text class="empty-icon">📝</text>
+    <text class="empty-text">还没有发布过动态</text>
+    <button class="empty-btn" bindtap="goToPost">去发布第一条动态</button>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{isLoading && feeds.length === 0}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 加载失败 -->
+  <view class="error-state" wx:if="{{loadError && feeds.length === 0 && !isLoading}}">
+    <text class="error-text">加载失败：{{loadError}}</text>
+    <button class="retry-btn" bindtap="loadMyFeeds">点击重试</button>
+  </view>
+</view>

@@ -1,0 +1,51 @@
+<!--
+  我参与的众筹 / 我发起的众筹
+-->
+<view class="page">
+  <!-- Tab -->
+  <view class="tab-bar">
+    <view class="tab-item {{activeTab === 'donated' ? 'active' : ''}}" bindtap="onTabChange" data-tab="donated">我参与的</view>
+    <view class="tab-item {{activeTab === 'initiated' ? 'active' : ''}}" bindtap="onTabChange" data-tab="initiated">我发起的</view>
+  </view>
+
+  <view class="container">
+    <!-- 参与的众筹 -->
+    <view wx:if="{{activeTab === 'donated'}}">
+      <view class="list-item card" wx:for="{{donatedList}}" wx:key="_id">
+        <view class="item-row">
+          <text class="item-title">{{item.catName || '流浪猫救助'}}</text>
+          <text class="item-amount">-¥{{item.amountDisplay}}</text>
+        </view>
+        <text class="item-time">{{item.timeText}}</text>
+      </view>
+      <view class="empty-state" wx:if="{{donatedList.length === 0 && !loading}}">
+        <text class="empty-icon">💕</text>
+        <text class="empty-text">还没有参与过众筹</text>
+      </view>
+    </view>
+
+    <!-- 发起的众筹 -->
+    <view wx:if="{{activeTab === 'initiated'}}">
+      <view class="list-item card" wx:for="{{initiatedList}}" wx:key="_id" bindtap="onTapInitiated" data-id="{{item._id}}">
+        <view class="item-row">
+          <view class="item-left">
+            <text class="tag tag-primary" style="font-size: 20rpx; margin-right: 8rpx;">{{item.typeText}}</text>
+            <text class="item-title">{{item.catName || '流浪猫救助'}}</text>
+          </view>
+          <text class="item-amount" style="color: var(--color-success);">+¥{{item.raisedDisplay}}</text>
+        </view>
+        <view class="progress-bar" style="margin: 12rpx 0;">
+          <view class="progress-bar-fill" style="width: {{item.percent}}%"></view>
+        </view>
+        <view class="item-bottom">
+          <text class="item-time">{{item.percent}}% / ¥{{item.targetDisplay}}</text>
+          <text class="receipt-link" catchtap="onGoReceipt" data-id="{{item._id}}">申请报销 ></text>
+        </view>
+      </view>
+      <view class="empty-state" wx:if="{{initiatedList.length === 0 && !loading}}">
+        <text class="empty-icon">📋</text>
+        <text class="empty-text">还没有发起过众筹</text>
+      </view>
+    </view>
+  </view>
+</view>

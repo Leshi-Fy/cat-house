@@ -1,0 +1,121 @@
+/**
+ * 创建众筹页样式
+ */
+
+.page { min-height: 100vh; background: var(--color-bg); }
+.container { padding: 24rpx 32rpx; }
+
+.section {
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+  box-shadow: var(--shadow-card);
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+
+/* 选择猫咪 */
+.cat-select {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.cat-thumb {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: var(--radius-sm);
+}
+
+.cat-thumb-placeholder {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+}
+
+.cat-select-info { flex: 1; }
+.cat-name { font-size: 28rpx; font-weight: 500; display: block; }
+.cat-hint { font-size: 22rpx; color: var(--color-text-light); display: block; margin-top: 4rpx; }
+.arrow { color: var(--color-text-light); font-size: 28rpx; }
+
+/* 类型选择 */
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+}
+
+.type-item {
+  padding: 20rpx;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  font-size: 28rpx;
+  border: 2rpx solid transparent;
+}
+
+.type-item.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(255, 140, 66, 0.08);
+}
+
+/* 描述 */
+.desc-input {
+  width: 100%;
+  min-height: 160rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+/* 金额 */
+.amount-input-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 0 24rpx;
+  height: 88rpx;
+}
+
+.amount-prefix {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-right: 12rpx;
+}
+
+.amount-input {
+  flex: 1;
+  font-size: 36rpx;
+  font-weight: 600;
+  height: 88rpx;
+}
+
+/* 日期 */
+.date-picker {
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: var(--color-text-light);
+}
+
+/* 照片 */
+.photo-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.photo-item { width: 160rpx; height: 160rpx; border-radius: var(--radius-sm); overflow: hidden; position: relative; }
+.photo-img { width: 100%; height: 100%; }
+.photo-delete { position: absolute; top: 0; right: 0; width: 40rpx; height: 40rpx; background: rgba(0,0,0,0.5); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; }
+.photo-add { width: 160rpx; height: 160rpx; border-radius: var(--radius-sm); border: 2rpx dashed var(--color-border); display: flex; align-items: center; justify-content: center; font-size: 40rpx; color: var(--color-primary); }
+
+/* 提交 */
+.submit-wrap { padding-top: 16rpx; }
+.submit-btn { width: 100%; }

@@ -1,0 +1,108 @@
+<!--
+  众筹详情页
+  所有用户看到相同内容（捐款记录+报销记录），
+  仅底部操作按钮按身份区分
+-->
+<view class="page">
+  <!-- 顶部图片 -->
+  <view class="hero-section" wx:if="{{crowd && !loading}}">
+    <image class="hero-photo" src="{{crowd.catPhoto || crowd.photos[0]}}" mode="aspectFill" bindtap="onGoCat" />
+    <view class="hero-overlay">
+      <text class="tag tag-primary">{{crowd.typeText}}</text>
+      <text class="hero-title">{{crowd.catName || '流浪猫救助'}}</text>
+    </view>
+  </view>
+
+  <view class="container" wx:if="{{crowd && !loading}}">
+    <!-- 金额进度 -->
+    <view class="progress-card card">
+      <view class="amount-row">
+        <text class="raised-amount">¥{{crowd.raisedDisplay}}</text>
+        <text class="target-amount">目标 ¥{{crowd.targetDisplay}}</text>
+      </view>
+      <view class="progress-bar" style="margin: 20rpx 0;">
+        <view class="progress-bar-fill" style="width: {{crowd.percent}}%"></view>
+      </view>
+      <view class="progress-meta">
+        <text class="progress-percent">{{crowd.percent}}%</text>
+        <text class="progress-deadline" wx:if="{{!crowd.isExpired}}">距截止还有 {{crowd.deadlineText}}</text>
+        <text class="progress-deadline expired" wx:else>已截止</text>
+      </view>
+    </view>
+
+    <!-- 描述 -->
+    <view class="desc-card card">
+      <view class="card-title">项目详情</view>
+      <text class="desc-text">{{crowd.description || '暂无详细描述'}}</text>
+    </view>
+
+    <!-- 发起人信息 -->
+    <view class="info-card card">
+      <view class="info-row">
+        <text class="info-label">发起人</text>
+        <text class="info-value">{{crowd.initiatorName}}</text>
+      </view>
+      <view class="info-row" wx:if="{{crowd.catName}}">
+        <text class="info-label">救助猫咪</text>
+        <text class="info-value text-primary" bindtap="onGoCat">{{crowd.catName}} >></text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">截止日期</text>
+        <text class="info-value">{{crowd.deadlineText}}</text>
+      </view>
+    </view>
+
+    <!-- 捐款记录 -->
+    <view class="records-card card">
+      <view class="card-title">💕 捐款记录（{{donations.length}}）</view>
+      <view class="record-item" wx:for="{{donations}}" wx:key="_id">
+        <view class="record-left">
+          <text class="record-name">{{item.donorName || '爱心人士'}}</text>
+          <text class="record-time">{{item.donateTime}}</text>
+        </view>
+        <text class="record-amount donate-color">+¥{{item.amountDisplay}}</text>
+      </view>
+      <view class="empty-tip" wx:if="{{donations.length === 0}}">
+        <text class="empty-tip-text">暂无捐款记录，快来成为第一个爱心人士吧</text>
+      </view>
+    </view>
+
+    <!-- 报销记录 -->
+    <view class="records-card card">
+      <view class="card-title">📋 报销记录（{{receipts.length}}）</view>
+      <view class="record-item" wx:for="{{receipts}}" wx:key="_id">
+        <view class="record-left">
+          <view class="record-name-row">
+            <text class="record-name">报销申请</text>
+            <text class="receipt-status-tag {{item.status}}">{{item.statusText}}</text>
+          </view>
+          <text class="record-time">{{item.timeText}}</text>
+          <text class="record-remark" wx:if="{{item.remark}}">{{item.remark}}</text>
+          <!-- 发票图片 -->
+          <view class="receipt-photos" wx:if="{{item.receipts && item.receipts.length > 0}}">
+            <image class="receipt-photo-img" wx:for="{{item.receipts}}" wx:for-item="photo" wx:key="index" src="{{photo}}" mode="aspectFill" bindtap="previewReceipt" data-current="{{photo}}" data-urls="{{item.receipts}}" />
+          </view>
+        </view>
+        <text class="record-amount receipt-color">-¥{{item.amountDisplay}}</text>
+      </view>
+      <view class="empty-tip" wx:if="{{receipts.length === 0}}">
+        <text class="empty-tip-text">暂无报销记录</text>
+      </view>
+    </view>
+
+    <!-- 底部操作 -->
+    <view class="bottom-actions safe-bottom">
+      <button class="btn-primary donate-btn" bindtap="onDonate" wx:if="{{!crowd.isExpired && !crowd.isInitiator}}">
+        ❤️ 参与捐款
+      </button>
+      <button class="btn-primary receipt-btn" bindtap="onReceipt" wx:if="{{crowd.isInitiator && crowd.status === 'ongoing'}}">
+        📋 申请报销
+      </button>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <text class="paw-loading-icon">🐾</text>
+  </view>
+</view>

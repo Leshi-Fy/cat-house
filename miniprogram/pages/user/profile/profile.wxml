@@ -1,0 +1,50 @@
+<!--
+  个人中心页
+-->
+<view class="page page-with-tabbar">
+  <!-- 用户信息区 -->
+  <view class="user-header">
+    <view class="user-avatar-wrap" wx:if="{{isLoggedIn && userInfo}}">
+      <image class="user-avatar" src="{{userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" />
+    </view>
+    <view class="user-avatar-wrap default" wx:else>
+      <text class="default-avatar-text">🐱</text>
+    </view>
+
+    <view class="user-info" wx:if="{{isLoggedIn && userInfo}}">
+      <text class="user-name">{{userInfo.nickName || '猫屋用户'}}</text>
+      <text class="user-bio" wx:if="{{userInfo.bio}}">{{userInfo.bio}}</text>
+    </view>
+    <view class="user-info" wx:else>
+      <button class="login-btn" bindtap="onLogin" size="mini">点击登录</button>
+    </view>
+
+    <view class="edit-btn" bindtap="onEditProfile" wx:if="{{isLoggedIn}}">
+      <text>编辑资料 ></text>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-list">
+    <view class="menu-item card" wx:for="{{menuItems}}" wx:key="url" bindtap="onMenuTap" data-url="{{item.url}}">
+      <view class="menu-left">
+        <text class="menu-icon">{{item.icon}}</text>
+        <view class="menu-text">
+          <text class="menu-label">{{item.label}}</text>
+          <text class="menu-desc">{{item.desc}}</text>
+        </view>
+      </view>
+      <text class="menu-arrow">></text>
+    </view>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="logout-section" wx:if="{{isLoggedIn}}">
+    <button class="logout-btn" bindtap="onLogout">退出登录</button>
+  </view>
+
+  <!-- 底部版权 -->
+  <view class="footer">
+    <text class="footer-text">🐾 猫屋 - 让每只流浪猫都被看见</text>
+  </view>
+</view>
