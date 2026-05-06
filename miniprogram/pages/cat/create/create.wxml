@@ -42,7 +42,7 @@
         </view>
         <view class="form-item half">
           <text class="form-label">大概年龄</text>
-          <input class="form-input" placeholder="如：1岁、几个月" value="{{form.age}}" bindinput="onInputAge" />
+          <input class="form-input" placeholder="如：1岁、6个月、2岁3个月" value="{{form.ageText}}" bindinput="onInputAge" />
         </view>
       </view>
 

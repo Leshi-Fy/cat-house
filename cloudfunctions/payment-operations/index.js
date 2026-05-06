@@ -56,6 +56,29 @@ async function demoDonate(event, openid) {
     },
   });
 
+  // 给众筹发起人发通知
+  try {
+    const { data: crowd } = await db.collection('crowdfundings').doc(crowdId).get();
+    if (crowd && crowd.initiatorId && crowd.initiatorId !== openid) {
+      await cloud.callFunction({
+        name: 'notify-operations',
+        data: {
+          action: 'create',
+          recipientId: crowd.initiatorId,
+          senderId: openid,
+          senderName: donorName || '匿名爱心人士',
+          senderAvatar: '',
+          type: 'donate',
+          crowdId,
+          feedContent: crowd.description ? crowd.description.slice(0, 50) : '',
+          amount,
+        },
+      });
+    }
+  } catch (e) {
+    console.log('发送捐款通知失败（不影响主流程）:', e.message);
+  }
+
   return { success: true };
 }
 

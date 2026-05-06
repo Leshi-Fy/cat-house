@@ -158,7 +158,7 @@
   padding-top: 24rpx;
 }
 
-.merge-btn, .crowd-btn {
+.merge-btn, .crowd-btn, .edit-btn {
   flex: 1;
   font-size: 28rpx !important;
 }
@@ -317,4 +317,52 @@
 .crowd-target {
   font-size: 24rpx;
   color: var(--color-text-light);
+}
+
+/* 编辑弹窗 */
+.edit-modal-content {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.edit-form-item {
+  margin-bottom: 28rpx;
+}
+
+.edit-label {
+  display: block;
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  margin-bottom: 10rpx;
+}
+
+.edit-input {
+  width: 100%;
+  height: 72rpx;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.edit-picker {
+  width: 100%;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 120rpx;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 16rpx 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
 }

@@ -34,7 +34,10 @@
           <text class="menu-desc">{{item.desc}}</text>
         </view>
       </view>
-      <text class="menu-arrow">></text>
+      <view class="menu-right">
+        <view class="menu-badge" wx:if="{{item.label === '消息通知' && unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
+        <text class="menu-arrow">></text>
+      </view>
     </view>
   </view>
 

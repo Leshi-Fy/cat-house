@@ -40,6 +40,8 @@ Page({
     nextOpacity: 0.75,
     nextTranslateX: 0,
     nextRotate: 0,
+    // 消息角标
+    unreadCount: 0,
   },
 
   _touchStartX: 0,
@@ -53,12 +55,15 @@ Page({
     } else {
       await this._loadInitialFallback();
     }
+    this._loadUnreadCount();
   },
 
   onShow() {
     if (this.data.location && this.data.cats.length === 0 && !this.data.loading) {
       this._loadInitial(this.data.location);
     }
+    // 每次切回首页刷新角标
+    this._loadUnreadCount();
   },
 
   onPullDownRefresh() {
@@ -413,6 +418,27 @@ Page({
 
   goCreateCat() {
     wx.navigateTo({ url: '/pages/cat/create/create' });
+  },
+
+  goNotifications() {
+    wx.navigateTo({ url: '/pages/user/notifications/notifications' });
+  },
+
+  /** 获取未读消息数量（角标） */
+  async _loadUnreadCount() {
+    if (!app.globalData.isLoggedIn) return;
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'notify-operations',
+        data: { action: 'unreadCount' },
+      });
+      if (result && result.success) {
+        this.setData({ unreadCount: result.total || 0 });
+        if (app.globalData) app.globalData.unreadCount = result.total || 0;
+      }
+    } catch (e) {
+      // 静默失败，不影响主流程
+    }
   },
 
   async relocate() {

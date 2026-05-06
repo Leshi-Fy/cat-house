@@ -113,6 +113,28 @@
   color: var(--color-text-light);
 }
 
+.menu-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.menu-badge {
+  background: #FF4D4F;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 600;
+  min-width: 36rpx;
+  height: 36rpx;
+  line-height: 36rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  padding: 0 8rpx;
+  box-sizing: border-box;
+}
+
+
+
 /* 底部 */
 .footer {
   text-align: center;

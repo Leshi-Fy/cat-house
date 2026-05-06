@@ -2,7 +2,7 @@
  * 流浪猫详情页
  */
 const { query, COLLECTIONS, db } = require('../../../utils/database');
-const { timeAgo, formatMoney } = require('../../../utils/util');
+const { timeAgo, formatMoney, calcCatAge, parseAgeToMonths } = require('../../../utils/util');
 const CONFIG = require('../../../utils/config');
 const app = getApp();
 
@@ -30,6 +30,22 @@ Page({
     mapScale: 15,
     markers: [],
     circles: [],
+    // 手动更新弹窗
+    showEditModal: false,
+    editForm: {
+      ageText: '',      // 用户输入文字，如 "2岁3个月"
+      healthStatus: 'good',
+      description: '',
+      lastSeenNote: '',
+      status: 'active',
+    },
+    healthOptions: ['good', 'injured', 'sick', 'deceased'],
+    healthLabels: ['健康', '受伤', '生病', '已去世'],
+    healthIndex: 0,
+    statusOptions: ['active', 'adopted', 'deceased'],
+    statusLabels: ['活跃', '已领养', '已去世'],
+    statusIndex: 0,
+    isSubmittingEdit: false,
   },
 
   onLoad(options) {
@@ -71,6 +87,11 @@ Page({
         cat.healthText = CONFIG.HEALTH_TEXT[cat.healthStatus] || cat.healthStatus;
         cat.sterilizedText = CONFIG.STERILIZED_TEXT[cat.sterilized] || cat.sterilized;
         cat.genderText = CONFIG.GENDER_TEXT[cat.gender] || cat.gender;
+
+        // 实时计算年龄：ageAtCreate（月数）+ 档案创建至今经过的月数
+        // 已去世的猫不叠加时间
+        const isDeceased = cat.status === 'deceased';
+        cat.ageDisplay = calcCatAge(cat.ageAtCreate, cat.createTime, isDeceased);
 
         // 生成地图 markers
         let markers = [];
@@ -265,5 +286,111 @@ Page({
       path: `/pages/cat/detail/detail?id=${cat._id}`,
       imageUrl: cat.photos[0] || '',
     };
+  },
+
+  // ─── 手动更新数据 ───────────────────────────────────────
+
+  /** 打开编辑弹窗 */
+  onOpenEdit() {
+    const { cat, healthOptions, statusOptions } = this.data;
+    const healthIndex = healthOptions.indexOf(cat.healthStatus || 'good');
+    const statusIndex = statusOptions.indexOf(cat.status || 'active');
+
+    // 将 ageAtCreate（月数）反显为文字，方便用户知道当前值
+    let ageText = '';
+    if (cat.ageAtCreate !== undefined && cat.ageAtCreate !== null && cat.ageAtCreate !== '') {
+      const m = Number(cat.ageAtCreate);
+      if (!isNaN(m) && m >= 0) {
+        if (m < 12) {
+          ageText = m < 1 ? '' : `${m}个月`;
+        } else {
+          const yr = Math.floor(m / 12);
+          const mo = m % 12;
+          ageText = mo === 0 ? `${yr}岁` : `${yr}岁${mo}个月`;
+        }
+      }
+    }
+
+    this.setData({
+      showEditModal: true,
+      editForm: {
+        ageText,
+        healthStatus: cat.healthStatus || 'good',
+        description: cat.description || '',
+        lastSeenNote: '',
+        status: cat.status || 'active',
+      },
+      healthIndex: healthIndex >= 0 ? healthIndex : 0,
+      statusIndex: statusIndex >= 0 ? statusIndex : 0,
+    });
+  },
+
+  onCloseEdit() {
+    this.setData({ showEditModal: false });
+  },
+
+  onEditAgeInput(e) {
+    this.setData({ 'editForm.ageText': e.detail.value });
+  },
+
+  onEditDescInput(e) {
+    this.setData({ 'editForm.description': e.detail.value });
+  },
+
+  onEditLastSeenInput(e) {
+    this.setData({ 'editForm.lastSeenNote': e.detail.value });
+  },
+
+  onEditHealthChange(e) {
+    const idx = +e.detail.value;
+    this.setData({
+      healthIndex: idx,
+      'editForm.healthStatus': this.data.healthOptions[idx],
+    });
+  },
+
+  onEditStatusChange(e) {
+    const idx = +e.detail.value;
+    this.setData({
+      statusIndex: idx,
+      'editForm.status': this.data.statusOptions[idx],
+    });
+  },
+
+  /** 提交手动更新 */
+  async onSubmitEdit() {
+    const { catId, editForm, isSubmittingEdit } = this.data;
+    if (isSubmittingEdit) return;
+    this.setData({ isSubmittingEdit: true });
+
+    try {
+      const updateData = {
+        ageAtCreate: parseAgeToMonths(editForm.ageText),  // 存月数，null 表示未填
+        healthStatus: editForm.healthStatus,
+        description: editForm.description,
+        status: editForm.status,
+      };
+      // 如果填写了最新目击备注，更新 lastSeenTime
+      if (editForm.lastSeenNote && editForm.lastSeenNote.trim()) {
+        updateData.lastSeenNote = editForm.lastSeenNote.trim();
+        updateData.lastSeenTime = new Date();
+      }
+
+      const { result } = await wx.cloud.callFunction({
+        name: 'cat-operations',
+        data: { action: 'update', catId, updateData },
+      });
+
+      if (result.error) throw new Error(result.error);
+
+      wx.showToast({ title: '更新成功', icon: 'success' });
+      this.setData({ showEditModal: false, isSubmittingEdit: false });
+      // 刷新详情
+      this.loadCatDetail(catId);
+    } catch (err) {
+      console.error('更新失败:', err);
+      this.setData({ isSubmittingEdit: false });
+      wx.showToast({ title: err.message || '更新失败', icon: 'none' });
+    }
   },
 });

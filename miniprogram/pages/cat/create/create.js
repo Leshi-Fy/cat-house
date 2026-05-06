@@ -2,7 +2,7 @@
  * 创建流浪猫档案
  */
 const { db, COLLECTIONS, query } = require('../../../utils/database');
-const { chooseImage, uploadImages, showError, generateId } = require('../../../utils/util');
+const { chooseImage, uploadImages, showError, generateId, parseAgeToMonths } = require('../../../utils/util');
 const app = getApp();
 
 Page({
@@ -14,7 +14,7 @@ Page({
       gender: 'unknown',
       sterilized: 'unknown',
       healthStatus: 'good',
-      age: '',
+      ageText: '',   // 用户输入的年龄文本，如 "1岁3个月"
       photos: [],
       areaRadius: 500,
     },
@@ -87,7 +87,7 @@ Page({
   },
 
   onInputAge(e) {
-    this.setData({ 'form.age': e.detail.value });
+    this.setData({ 'form.ageText': e.detail.value });
   },
 
   // 选择器
@@ -281,7 +281,12 @@ Page({
       }
 
       const catData = {
-        ...form,
+        name: form.name,
+        description: form.description,
+        gender: form.gender,
+        sterilized: form.sterilized,
+        healthStatus: form.healthStatus,
+        ageAtCreate: parseAgeToMonths(form.ageText),  // 月数，null 表示未填
         photos: uploadedPhotos,
         creatorId: app.globalData.openid,
         creatorName,

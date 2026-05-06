@@ -9,6 +9,11 @@
       <text class="title-desc" wx:if="{{location}}">附近流浪猫</text>
     </view>
     <view class="header-actions">
+      <!-- 消息图标（带角标） -->
+      <view class="action-btn notify-btn" bindtap="goNotifications">
+        <text>🔔</text>
+        <view class="notify-badge" wx:if="{{unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
+      </view>
       <view class="action-btn" bindtap="relocate">📍</view>
       <view class="action-btn" bindtap="goCreateCat">＋</view>
     </view>

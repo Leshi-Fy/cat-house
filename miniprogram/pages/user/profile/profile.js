@@ -7,7 +7,9 @@ Page({
   data: {
     userInfo: null,
     isLoggedIn: false,
+    unreadCount: 0,
     menuItems: [
+      { icon: '🔔', label: '消息通知', desc: '赞、评论、捐款提醒', url: '/pages/user/notifications/notifications' },
       { icon: '📝', label: '我的动态', desc: '我发布的动态', url: '/pages/user/my-feeds/my-feeds' },
       { icon: '🐱', label: '我的猫咪', desc: '家养猫档案', url: '/pages/user/my-cats/my-cats' },
       { icon: '🐾', label: '我创建的流浪猫', desc: '含合并数据', url: '/pages/user/my-strays/my-strays' },
@@ -19,6 +21,20 @@ Page({
 
   onShow() {
     this.checkUser();
+    this._loadUnreadCount();
+  },
+
+  async _loadUnreadCount() {
+    if (!app.globalData.isLoggedIn) return;
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'notify-operations',
+        data: { action: 'unreadCount' },
+      });
+      if (result && result.success) {
+        this.setData({ unreadCount: result.total || 0 });
+      }
+    } catch (e) {}
   },
 
   checkUser() {

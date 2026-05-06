@@ -149,6 +149,86 @@ function generateId() {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+/**
+ * 实时计算流浪猫年龄
+ * 
+ * 逻辑：
+ *   displayMonths = ageAtCreate（月）+ floor((now - createTime) / 月)
+ *   已去世的猫：直接显示 ageAtCreate 对应的年龄，不叠加时间
+ * 
+ * @param {number} ageAtCreate  创建时登记的年龄（月数，可以是小数，如 0.5 = 半个月）
+ * @param {Date|string|number} createTime  档案创建时间
+ * @param {boolean} isDeceased  是否已去世
+ * @returns {string} 友好文案，如 "约2岁3个月"，无数据时返回 ''
+ */
+function calcCatAge(ageAtCreate, createTime, isDeceased) {
+  // ageAtCreate 未填（undefined/null/''）时直接返回空
+  if (ageAtCreate === undefined || ageAtCreate === null || ageAtCreate === '') return '';
+
+  const baseMonths = Number(ageAtCreate);
+  if (isNaN(baseMonths) || baseMonths < 0) return '';
+
+  let totalMonths = baseMonths;
+
+  if (!isDeceased && createTime) {
+    const ct = new Date(createTime);
+    if (!isNaN(ct.getTime())) {
+      const now = new Date();
+      const elapsedMonths = Math.floor((now - ct) / (1000 * 60 * 60 * 24 * 30.5));
+      if (elapsedMonths > 0) totalMonths += elapsedMonths;
+    }
+  }
+
+  totalMonths = Math.round(totalMonths);
+
+  if (totalMonths < 1) return '不足1个月';
+  if (totalMonths < 12) return `约${totalMonths}个月`;
+  const years = Math.floor(totalMonths / 12);
+  const rem = totalMonths % 12;
+  if (rem === 0) return `约${years}岁`;
+  return `约${years}岁${rem}个月`;
+}
+
+/**
+ * 将用户输入的年龄文本（如 "1岁3个月" / "6个月" / "2岁"）解析为月数
+ * 也支持直接输入纯数字（视为月数）
+ * 返回 null 表示解析失败
+ */
+function parseAgeToMonths(input) {
+  if (!input) return null;
+  const str = String(input).trim();
+  // 纯数字：直接视为月数
+  if (/^\d+(\.\d+)?$/.test(str)) return parseFloat(str);
+
+  let months = 0;
+  let matched = false;
+
+  // 匹配 X岁Y个月 / X岁Y月
+  const fullMatch = str.match(/(\d+)\s*岁\s*(\d+)\s*[个]?月/);
+  if (fullMatch) {
+    months = parseInt(fullMatch[1]) * 12 + parseInt(fullMatch[2]);
+    matched = true;
+  }
+  // 匹配 X岁（无月）
+  if (!matched) {
+    const yearOnly = str.match(/^(\d+)\s*岁$/);
+    if (yearOnly) {
+      months = parseInt(yearOnly[1]) * 12;
+      matched = true;
+    }
+  }
+  // 匹配 X个月 / X月
+  if (!matched) {
+    const monthOnly = str.match(/^(\d+)\s*[个]?月$/);
+    if (monthOnly) {
+      months = parseInt(monthOnly[1]);
+      matched = true;
+    }
+  }
+
+  return matched ? months : null;
+}
+
 module.exports = {
   formatDate,
   timeAgo,
@@ -162,4 +242,6 @@ module.exports = {
   uploadImage,
   uploadImages,
   generateId,
+  calcCatAge,
+  parseAgeToMonths,
 };

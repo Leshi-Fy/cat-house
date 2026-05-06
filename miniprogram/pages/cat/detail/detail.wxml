@@ -48,7 +48,7 @@
         <text class="tag {{cat.sterilized === 'yes' ? 'tag-success' : 'tag-primary'}}">
           {{cat.sterilizedText}}
         </text>
-        <text class="tag tag-primary" wx:if="{{cat.age}}">约{{cat.age}}</text>
+        <text class="tag tag-primary" wx:if="{{cat.ageDisplay}}">{{cat.ageDisplay}}</text>
       </view>
 
       <!-- 描述 -->
@@ -144,6 +144,9 @@
       <button class="btn-outline merge-btn" bindtap="onMergeTap" wx:if="{{!isOwner}}">
         🔗 申请合并
       </button>
+      <button class="btn-outline edit-btn" bindtap="onOpenEdit" wx:if="{{isOwner}}">
+        ✏️ 更新信息
+      </button>
       <button class="btn-primary crowd-btn" bindtap="onCrowdTap">
         ❤️ 发起众筹
       </button>
@@ -171,6 +174,49 @@
       <view class="modal-actions">
         <button class="btn-outline modal-btn" bindtap="onCancelMerge">取消</button>
         <button class="btn-primary modal-btn" bindtap="onSubmitMerge">选择我的猫咪</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 手动更新数据弹窗 -->
+  <view class="modal-mask" wx:if="{{showEditModal}}" bindtap="onCloseEdit">
+    <view class="modal-content edit-modal-content" catchtap="">
+      <view class="modal-title">更新猫咪信息</view>
+
+      <view class="edit-form-item">
+        <text class="edit-label">大概年龄</text>
+        <input class="edit-input" placeholder="如：1岁、6个月、2岁3个月" value="{{editForm.ageText}}" bindinput="onEditAgeInput" />
+      </view>
+
+      <view class="edit-form-item">
+        <text class="edit-label">健康状况</text>
+        <picker mode="selector" range="{{healthLabels}}" value="{{healthIndex}}" bindchange="onEditHealthChange">
+          <view class="edit-picker">{{healthLabels[healthIndex]}} ▾</view>
+        </picker>
+      </view>
+
+      <view class="edit-form-item">
+        <text class="edit-label">当前状态</text>
+        <picker mode="selector" range="{{statusLabels}}" value="{{statusIndex}}" bindchange="onEditStatusChange">
+          <view class="edit-picker">{{statusLabels[statusIndex]}} ▾</view>
+        </picker>
+      </view>
+
+      <view class="edit-form-item">
+        <text class="edit-label">最新目击备注</text>
+        <input class="edit-input" placeholder="留空则不更新目击时间" value="{{editForm.lastSeenNote}}" bindinput="onEditLastSeenInput" />
+      </view>
+
+      <view class="edit-form-item">
+        <text class="edit-label">外貌/描述更新</text>
+        <textarea class="edit-textarea" placeholder="更新猫咪描述（可选）" value="{{editForm.description}}" bindinput="onEditDescInput" auto-height />
+      </view>
+
+      <view class="modal-actions">
+        <button class="btn-outline modal-btn" bindtap="onCloseEdit">取消</button>
+        <button class="btn-primary modal-btn" bindtap="onSubmitEdit" disabled="{{isSubmittingEdit}}">
+          {{isSubmittingEdit ? '保存中...' : '保存'}}
+        </button>
       </view>
     </view>
   </view>

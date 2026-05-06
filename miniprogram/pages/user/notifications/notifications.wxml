@@ -1,0 +1,116 @@
+<!--
+  消息中心：赞 / 评论 / 捐款 三个 Tab
+-->
+<view class="page page-with-tabbar">
+
+  <!-- Tab 切换 -->
+  <view class="tabs">
+    <view
+      class="tab-item {{activeTab === 'like' ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-tab="like"
+    >
+      <text class="tab-text">赞</text>
+      <view class="tab-badge" wx:if="{{unread.likeCount > 0}}">{{unread.likeCount > 99 ? '99+' : unread.likeCount}}</view>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'comment' ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-tab="comment"
+    >
+      <text class="tab-text">评论</text>
+      <view class="tab-badge" wx:if="{{unread.commentCount > 0}}">{{unread.commentCount > 99 ? '99+' : unread.commentCount}}</view>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'donate' ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-tab="donate"
+    >
+      <text class="tab-text">捐款</text>
+      <view class="tab-badge" wx:if="{{unread.donateCount > 0}}">{{unread.donateCount > 99 ? '99+' : unread.donateCount}}</view>
+    </view>
+
+    <!-- 全部标为已读 -->
+    <view class="mark-all-btn" bindtap="markAllRead" wx:if="{{unread.total > 0}}">
+      <text class="mark-all-text">全部已读</text>
+    </view>
+  </view>
+
+  <!-- 通知列表 -->
+  <view class="list-wrap">
+
+    <!-- 加载中 -->
+    <view class="loading-wrap" wx:if="{{isLoading && items.length === 0}}">
+      <text class="paw-icon">🐾</text>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-wrap" wx:elif="{{!isLoading && items.length === 0}}">
+      <text class="empty-icon">🔔</text>
+      <text class="empty-text">暂无{{activeTab === 'like' ? '点赞' : activeTab === 'comment' ? '评论' : '捐款'}}通知</text>
+    </view>
+
+    <!-- 通知列表 -->
+    <view wx:else>
+      <view
+        class="notify-item {{item.isRead ? '' : 'unread'}}"
+        wx:for="{{items}}"
+        wx:key="_id"
+        bindtap="onItemTap"
+        data-item="{{item}}"
+      >
+        <!-- 头像 -->
+        <view class="avatar-wrap">
+          <image class="avatar" src="{{item.senderAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+          <!-- 类型图标 -->
+          <view class="type-icon {{item.type}}">
+            <text wx:if="{{item.type === 'like'}}">❤️</text>
+            <text wx:elif="{{item.type === 'comment'}}">💬</text>
+            <text wx:else>💰</text>
+          </view>
+        </view>
+
+        <!-- 内容 -->
+        <view class="notify-body">
+          <view class="notify-top">
+            <text class="sender-name">{{item.senderName}}</text>
+            <text class="notify-time">{{item.formattedTime}}</text>
+          </view>
+
+          <!-- 点赞 -->
+          <view wx:if="{{item.type === 'like'}}">
+            <text class="notify-action">赞了你的动态</text>
+            <view class="notify-quote" wx:if="{{item.feedContent}}">{{item.feedContent}}</view>
+          </view>
+
+          <!-- 评论 -->
+          <view wx:elif="{{item.type === 'comment'}}">
+            <text class="notify-action">评论了你：</text>
+            <view class="notify-quote">{{item.commentContent || item.feedContent}}</view>
+          </view>
+
+          <!-- 捐款 -->
+          <view wx:else>
+            <text class="notify-action">捐款了你发起的众筹</text>
+            <view class="notify-donate-amount">+¥{{item.amountDisplay}}</view>
+            <view class="notify-quote" wx:if="{{item.feedContent}}">{{item.feedContent}}</view>
+          </view>
+        </view>
+
+        <!-- 未读红点 -->
+        <view class="unread-dot" wx:if="{{!item.isRead}}"></view>
+      </view>
+
+      <!-- 加载更多 -->
+      <view class="load-more" wx:if="{{hasMore}}">
+        <view class="load-more-btn" bindtap="loadMore" wx:if="{{!isLoading}}">加载更多</view>
+        <text class="loading-more-text" wx:else>加载中...</text>
+      </view>
+      <view class="no-more" wx:else>
+        <text>— 已全部加载 —</text>
+      </view>
+    </view>
+  </view>
+
+</view>

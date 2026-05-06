@@ -53,6 +53,30 @@
   font-size: 32rpx;
 }
 
+.notify-btn {
+  position: relative;
+}
+
+.notify-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  background: #FF4D4F;
+  color: #fff;
+  font-size: 18rpx;
+  font-weight: 600;
+  min-width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  padding: 0 6rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #fff;
+}
+
+
+
 /* 加载状态 */
 .loading-wrap {
   flex: 1;

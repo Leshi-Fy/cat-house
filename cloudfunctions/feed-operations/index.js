@@ -308,6 +308,33 @@ async function likeFeed(event, openid) {
       }
     });
 
+    // 给动态作者发通知（云函数内部调用）
+    try {
+      const { data: feed } = await db.collection('feeds').doc(feedId).get();
+      if (feed && feed.authorId && feed.authorId !== openid) {
+        let senderInfo = { nickName: '匿名用户', avatarUrl: '' };
+        try {
+          const userRes = await db.collection('users').doc(openid).get();
+          if (userRes.data) senderInfo = userRes.data;
+        } catch (e) {}
+        await cloud.callFunction({
+          name: 'notify-operations',
+          data: {
+            action: 'create',
+            recipientId: feed.authorId,
+            senderId: openid,
+            senderName: senderInfo.nickName || '匿名用户',
+            senderAvatar: senderInfo.avatarUrl || '',
+            type: 'like',
+            feedId,
+            feedContent: feed.content ? feed.content.slice(0, 50) : '',
+          },
+        });
+      }
+    } catch (e) {
+      console.log('发送点赞通知失败（不影响主流程）:', e.message);
+    }
+
     return { success: true };
   } catch (err) {
     console.error('点赞失败:', err);
@@ -443,6 +470,29 @@ async function addComment(event, openid) {
     await db.collection('feeds').doc(feedId).update({
       data: { commentCount: _.inc(1) }
     });
+
+    // 给动态作者发通知
+    try {
+      const { data: feed } = await db.collection('feeds').doc(feedId).get();
+      if (feed && feed.authorId && feed.authorId !== openid) {
+        await cloud.callFunction({
+          name: 'notify-operations',
+          data: {
+            action: 'create',
+            recipientId: feed.authorId,
+            senderId: openid,
+            senderName: userInfo.nickName || '匿名用户',
+            senderAvatar: userInfo.avatarUrl || '',
+            type: 'comment',
+            feedId,
+            feedContent: feed.content ? feed.content.slice(0, 50) : '',
+            commentContent: content.trim().slice(0, 100),
+          },
+        });
+      }
+    } catch (e) {
+      console.log('发送评论通知失败（不影响主流程）:', e.message);
+    }
 
     return {
       success: true,

@@ -17,7 +17,8 @@
     "pages/crowd/create/create",
     "pages/crowd/donate/donate",
     "pages/crowd/receipt/receipt",
-    "pages/user/merge-review/merge-review"
+    "pages/user/merge-review/merge-review",
+    "pages/user/notifications/notifications"
   ],
   "window": {
     "backgroundColor": "#FFF8F0",
