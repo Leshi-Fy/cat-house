@@ -59,6 +59,20 @@ Page({
   },
 
   onShow() {
+    const app = getApp();
+    // 从创建页返回时强制刷新列表，让新猫立刻出现
+    if (app.globalData._refreshHome) {
+      app.globalData._refreshHome = false;
+      this.setData({ cats: [], currentIndex: 0, _page: 1, hasMore: true });
+      if (this.data.location) {
+        this._loadInitial(this.data.location);
+      } else {
+        this._loadInitialFallback();
+      }
+      this._loadUnreadCount();
+      return;
+    }
+
     if (this.data.location && this.data.cats.length === 0 && !this.data.loading) {
       this._loadInitial(this.data.location);
     }
@@ -447,5 +461,10 @@ Page({
       this.setData({ location, cats: [], currentIndex: 0, _page: 1, hasMore: true });
       await this._loadInitial(location);
     }
+  },
+
+  /** 图片加载失败时兜底，避免空白 */
+  onPhotoError(e) {
+    console.error('首页卡片图片加载失败:', e.detail);
   },
 });

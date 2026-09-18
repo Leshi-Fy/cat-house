@@ -36,7 +36,7 @@
       class="cat-card stack-card"
       style="z-index: {{bottomCards[0]._zIndex}}; transform: scale({{nextScale}}) translate({{nextTranslateX}}px, {{nextTranslateY}}px) rotate({{nextRotate}}deg); opacity: {{nextOpacity}}; transition: {{isAnimating ? 'transform 0.35s cubic-bezier(0.2, 0, 0, 1), opacity 0.35s ease' : 'none'}};"
     >
-      <image class="cat-card-bg" src="{{bottomCards[0].photos[0]}}" mode="aspectFill" />
+      <image class="cat-card-bg" src="{{bottomCards[0].photos[0]}}" mode="aspectFill" lazy-load />
       <view class="card-overlay"></view>
       <view class="cat-info-overlay">
         <view class="cat-name-row">
@@ -51,7 +51,7 @@
       class="cat-card stack-card"
       style="z-index: {{bottomCards[1]._zIndex}}; transform: scale({{bottomCards[1]._scale}}) translate({{bottomCards[1]._translateX}}px, {{bottomCards[1]._translateY}}px) rotate({{bottomCards[1]._rotate}}deg); opacity: {{bottomCards[1]._opacity}};"
     >
-      <image class="cat-card-bg" src="{{bottomCards[1].photos[0]}}" mode="aspectFill" />
+      <image class="cat-card-bg" src="{{bottomCards[1].photos[0]}}" mode="aspectFill" lazy-load />
       <view class="card-overlay"></view>
       <view class="cat-info-overlay">
         <view class="cat-name-row">
@@ -69,6 +69,7 @@
         class="cat-card-bg cat-card-draggable" 
         src="{{currentCat.photos[0]}}" 
         mode="aspectFill"
+        lazy-load
         binderror="onPhotoError"
         catchtouchstart="onTouchStart"
         catchtouchmove="onTouchMove"

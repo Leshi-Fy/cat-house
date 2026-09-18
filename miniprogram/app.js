@@ -1,17 +1,19 @@
 /**
  * 猫屋小程序 - 全局入口
- * 管理用户登录状态、全局数据
+ * 已迁移到 Supabase / MemFire Cloud 后端（详见 utils/supabase.js）
+ * 这里把 wx.cloud 的三类调用重定向到 Supabase，业务页面无需改动。
  */
+const supabase = require('./utils/supabase.js');
+
 App({
   onLaunch() {
-    if (!wx.cloud) {
-      console.error('请使用 2.2.3 或以上的基础库以使用云能力');
-    } else {
-      wx.cloud.init({
-        env: 'cloud1-3gck8npe4d85d586',
-        traceUser: true,
-      });
-    }
+    // 云开发环境已移除，这里用 Supabase 适配层接管 wx.cloud 的能力
+    if (!wx.cloud) wx.cloud = {};
+    wx.cloud.init = function () {}; // 兼容旧调用，无操作
+    wx.cloud.callFunction = (opts) => supabase.callFunction(opts.name, opts.data);
+    wx.cloud.database = () => supabase.database();
+    wx.cloud.uploadFile = (opts) => supabase.uploadFile(opts);
+
     this.globalData = {
       userInfo: null,
       location: null,
@@ -35,12 +37,15 @@ App({
     }
   },
 
-  // 微信登录
+  // 微信登录（通过 Supabase Edge Function 完成 jscode2session）
   async login() {
     if (this.globalData.isLoggedIn) return this.globalData.userInfo;
 
     try {
-      const { result } = await wx.cloud.callFunction({ name: 'login' });
+      const { code } = await new Promise((resolve, reject) =>
+        wx.login({ success: resolve, fail: reject })
+      );
+      const { result } = await wx.cloud.callFunction({ name: 'login', data: { code } });
       if (result && result.openid) {
         wx.setStorageSync('openid', result.openid);
         this.globalData.openid = result.openid;

@@ -145,11 +145,9 @@ Page({
 
     try {
       let finalAvatarUrl = avatarUrl;
-      if (avatarUrl && avatarUrl.startsWith('http://tmp') || avatarUrl.startsWith('wxfile://')) {
-        const ext = avatarUrl.split('.').pop();
-        const cloudPath = `avatars/${Date.now()}.${ext}`;
-        const { fileID } = await wx.cloud.uploadFile({ cloudPath, filePath: avatarUrl });
-        finalAvatarUrl = fileID;
+      if (avatarUrl && (avatarUrl.startsWith('http://tmp') || avatarUrl.startsWith('wxfile://'))) {
+        const [fileID] = await uploadImages([{ tempFilePath: avatarUrl }], 'avatars');
+        finalAvatarUrl = fileID || avatarUrl;
       }
 
       const openid = app.globalData.openid;

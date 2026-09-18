@@ -308,6 +308,8 @@ Page({
       wx.showToast({ title: '创建成功！🐾', icon: 'success' });
 
       setTimeout(() => {
+        // 告诉首页回来要刷新，这样新建后能立刻看到
+        app.globalData._refreshHome = true;
         wx.navigateBack();
       }, 1500);
     } catch (err) {

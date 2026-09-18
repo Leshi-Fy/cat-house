@@ -109,7 +109,31 @@ function chooseImage(count = 9, sizeType = ['compressed'], sourceType = ['album'
 }
 
 /**
- * 上传图片到云存储
+ * 压缩图片（仅支持 jpg/png/webp，gif 直接跳过）
+ * @param {string} filePath
+ * @returns {Promise<string>} 压缩后的临时路径
+ */
+function compressImage(filePath) {
+  return new Promise((resolve) => {
+    const lower = (filePath || '').toLowerCase();
+    if (!lower.match(/\.(jpg|jpeg|png|webp)$/)) {
+      return resolve(filePath);
+    }
+
+    wx.compressImage({
+      src: filePath,
+      quality: 80,
+      success: (res) => resolve(res.tempFilePath || filePath),
+      fail: (err) => {
+        console.warn('[compressImage] 压缩失败，使用原图:', err);
+        resolve(filePath);
+      },
+    });
+  });
+}
+
+/**
+ * 上传单张图片到云存储
  * @param {string} filePath 本地临时路径
  * @param {string} cloudPath 云存储路径
  */
@@ -125,7 +149,7 @@ function uploadImage(filePath, cloudPath) {
 }
 
 /**
- * 批量上传图片
+ * 批量上传图片（先压缩再上传，减少上传体积和加载耗时）
  */
 async function uploadImages(tempFiles, dir = 'images') {
   const results = [];
@@ -133,7 +157,8 @@ async function uploadImages(tempFiles, dir = 'images') {
     const ext = file.tempFilePath.split('.').pop();
     const cloudPath = `${dir}/${Date.now()}-${Math.random().toString(36).substr(2, 6)}.${ext}`;
     try {
-      const res = await uploadImage(file.tempFilePath, cloudPath);
+      const compressedPath = await compressImage(file.tempFilePath);
+      const res = await uploadImage(compressedPath, cloudPath);
       results.push(res.fileID);
     } catch (err) {
       console.error('图片上传失败:', err);
