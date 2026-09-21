@@ -1,48 +1,54 @@
 // ============================================================
-// 猫屋小程序 · Supabase Edge Function（Deno 版）
-// 这是 NAS 自托管 Supabase 部署指南要求、但之前缺失的核心后端文件。
-// 由 supabase/memfire/index.js（Node.js 版）原样移植而来，业务逻辑 100% 一致，
-// 仅把运行时不兼容处改成 Deno 写法：
-//   - 配置：从 Deno.env.get() 读 Secrets（SB_URL / SB_SERVICE_ROLE_KEY / WECHAT_APPID / WECHAT_SECRET）
-//   - 微信 jscode2session：用 fetch 替代 https 模块
-//   - 文件上传：用原生 req.formData() 替代 busboy（Deno 内置，无需依赖）
-//   - 入口：serve(async (req) => Response) 替代 exports.handler
-//
-// 调用约定（前端 utils/supabase.js 垫片打过来的 body）：
-//   { name: 'login', code }                              -> 微信登录换 openid
-//   { name: 'cat-operations'|'feed-operations'|..., action, ... }  -> 各业务
-//   { name: 'db', op: 'get'|'list'|'count'|'add'|'update'|'remove', collection, ... } -> 通用库代理
-//   multipart/form-data 上传（wx.uploadFile）：file + cloudPath -> 返回 { fileID: 公开 URL }
-// 返回统一包成 { result: <payload> }，与云开发返回结构一致。
-//
-// 部署：supabase/functions/api/index.ts（本文件）
-//   方式 A（推荐，免 CLI）：NAS Studio -> Edge Functions -> Create 'api' -> 粘贴本文件 -> Deploy
-//                          -> 设置 4 个 Secrets -> 关闭 Verify JWT
-//   方式 B（CLI）：supabase functions deploy api --no-verify-jwt（见 README_NAS 步骤三）
-// 注意：SB_URL 填容器网络内地址 http://kong:8000（函数跑在 NAS 内网，连 Kong 用内网）
+// 猫屋小程序 · Supabase(MemFire) Edge Function 入口
+// 替代原来 8 个微信云函数 + 一个通用数据库代理
+// 调用约定（前端 wx.cloud.callFunction 垫片打过来的 body）：
+//   { name: 'cat-operations'|'feed-operations'|..., action: 'create'|..., ...payload, openid? }
+//   { name: 'db', op: 'get'|'list'|'count'|'add'|'update'|'remove', collection, ... }
+// 返回统一包成 { result: <payload> }，与云开发返回结构一致
 // ============================================================
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
-// ===== 配置（从 Edge Function Secrets 读取，不要硬编码到前端） =====
-const CONFIG = {
-  SUPABASE_URL: Deno.env.get('SB_URL') || '',
-  SERVICE_ROLE_KEY: Deno.env.get('SB_SERVICE_ROLE_KEY') || '',
-  WECHAT_APPID: Deno.env.get('WECHAT_APPID') || '',
-  WECHAT_SECRET: Deno.env.get('WECHAT_SECRET') || '',
-};
+function normalizeSupabaseUrl(raw: string): string {
+  // 用户可能把 /rest/v1 后缀也填进 URL，这会让 storage client 走 PostgREST 路由，报 PGRST125
+  try {
+    const url = new URL(raw);
+    if (url.pathname && url.pathname !== '/') {
+      url.pathname = '/';
+    }
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return raw.replace(/\/rest\/v1\/?$/i, '').replace(/\/$/, '');
+  }
+}
 
-const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SERVICE_ROLE_KEY, {
+const SUPABASE_URL = normalizeSupabaseUrl(Deno.env.get('SB_URL')!);
+const SERVICE_ROLE_KEY = Deno.env.get('SB_SERVICE_ROLE_KEY')!;
+// 文件「对外」可访问基址：
+//   自托管时 SB_URL 是 Docker 内网地址（如 http://api-gw:8000），小程序访问不到，
+//   必须用对外地址（局域网 IP 或 Cloudflare Tunnel 域名）来拼图片 URL。
+//   SB_PUBLIC_URL 由 docker-compose.override.yml 从 .env 的 SUPABASE_PUBLIC_URL 注入。
+const PUBLIC_URL = normalizeSupabaseUrl(
+  Deno.env.get('SB_PUBLIC_URL') || Deno.env.get('SB_URL')!,
+);
+
+// 构造 Storage 公开文件地址（按路径分段编码，兼容中文/空格/特殊字符）
+function publicFileUrl(cloudPath: string): string {
+  const clean = cloudPath.replace(/^\/+/, '');
+  const encoded = clean.split('/').map(encodeURIComponent).join('/');
+  return `${PUBLIC_URL}/storage/v1/object/public/cat-images/${encoded}`;
+}
+
+const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
 // ---------- 字段名转换 ----------
 function snakeToCamel(s: string): string {
-  return s.replace(/_([a-z])/g, (_m, c) => c.toUpperCase());
+  return s.replace(/_([a-z])/g, (_, c) => (c as string).toUpperCase());
 }
 function camelToSnake(s: string): string {
-  return s.replace(/[A-Z]/g, (m) => '_' + m.toLowerCase());
+  return s.replace(/[A-Z]/g, (m) => '_' + (m as string).toLowerCase());
 }
 
 // 数据库行 -> 前端对象（snake->camel，id->_id，并补回 location 结构供地图使用）
@@ -96,7 +102,7 @@ function applyWhere(query: any, where: any): any {
   for (const [k, v] of Object.entries(where)) {
     const col = camelToSnake(k);
     if (v && typeof v === 'object' && (v as any).__regex) {
-      query = query.ilike(col, '%' + (v as any).__regex + '%');
+      query = query.ilike(col, `%${(v as any).__regex}%`);
     } else if (v === null) {
       query = query.is(col, null);
     } else {
@@ -116,7 +122,7 @@ function applyOrder(query: any, orderBy: any): any {
 }
 
 // ---------- 通知（内部共享函数，替代云函数互调） ----------
-async function createNotification(p: any) {
+async function createNotification(supabase: any, p: any) {
   if (!p.recipientId || p.recipientId === p.senderId) return { success: true, skipped: true };
   const { error } = await supabase.from('notifications').insert({
     recipient_id: p.recipientId,
@@ -136,22 +142,20 @@ async function createNotification(p: any) {
 }
 
 // ============================================================
-// 微信登录（jscode2session）—— Deno 用 fetch
+// 微信登录（jscode2session）
 // ============================================================
-async function wxCode2Session(code: string): Promise<any> {
-  const url =
-    `https://api.weixin.qq.com/sns/jscode2session?appid=${CONFIG.WECHAT_APPID}` +
-    `&secret=${CONFIG.WECHAT_SECRET}&js_code=${code}&grant_type=authorization_code`;
-  const resp = await fetch(url);
-  return await resp.json();
-}
-
 async function loginAction(event: any) {
   const { code } = event;
   if (!code) return { error: '缺少 code' };
-  if (!CONFIG.WECHAT_APPID || !CONFIG.WECHAT_SECRET) return { error: '未配置微信 AppID/Secret' };
+  const appid = Deno.env.get('WECHAT_APPID');
+  const secret = Deno.env.get('WECHAT_SECRET');
+  if (!appid || !secret) return { error: '未配置微信 AppID/Secret' };
 
-  const wxres: any = await wxCode2Session(code);
+  const url =
+    `https://api.weixin.qq.com/sns/jscode2session?appid=${appid}` +
+    `&secret=${secret}&js_code=${code}&grant_type=authorization_code`;
+  const resp = await fetch(url);
+  const wxres: any = await resp.json();
   if (wxres.errcode) return { error: '微信登录失败: ' + wxres.errmsg };
 
   const openid = wxres.openid;
@@ -174,7 +178,8 @@ async function catOps(event: any) {
     case 'create': {
       const catData = event.catData || {};
       const loc = catData.location;
-      let lat = null, lng = null;
+      let lat: number | null = null,
+        lng: number | null = null;
       if (loc && loc.coordinates && loc.coordinates.length === 2) {
         lng = loc.coordinates[0];
         lat = loc.coordinates[1];
@@ -185,11 +190,13 @@ async function catOps(event: any) {
         gender: catData.gender,
         sterilized: catData.sterilized,
         health_status: catData.healthStatus,
-        age_at_create: catData.ageAtCreate != null ? catData.ageAtCreate : null,
+        age_at_create: catData.ageAtCreate ?? null,
         photos: catData.photos || [],
         creator_id: openid,
         creator_name: catData.creatorName || '匿名用户',
-        last_seen_time: catData.lastSeenTime ? new Date(catData.lastSeenTime).toISOString() : new Date().toISOString(),
+        last_seen_time: catData.lastSeenTime
+          ? new Date(catData.lastSeenTime).toISOString()
+          : new Date().toISOString(),
         latitude: lat,
         longitude: lng,
         area_radius: catData.areaRadius || 500,
@@ -211,8 +218,8 @@ async function catOps(event: any) {
         .not('latitude', 'is', null);
       if (error) throw error;
       const result = (data || [])
-        .map((cat) => ({ ...cat, distance: Math.round(haversine(latitude, longitude, cat.latitude, cat.longitude)) }))
-        .sort((a, b) => (a.distance || 999999) - (b.distance || 999999));
+        .map((cat: any) => ({ ...cat, distance: Math.round(haversine(latitude, longitude, cat.latitude, cat.longitude)) }))
+        .sort((a: any, b: any) => (a.distance || 999999) - (b.distance || 999999));
       const start = (page - 1) * pageSize;
       const pageData = result.slice(start, start + pageSize);
       return { success: true, data: pageData.map(rowToClient), total: result.length };
@@ -258,7 +265,7 @@ async function feedOps(event: any) {
       let userInfo = { nickName: '匿名用户', avatarUrl: '' };
       const { data: u } = await supabase.from('users').select('*').eq('id', openid).single();
       if (u) userInfo = { nickName: u.nick_name || '匿名用户', avatarUrl: u.avatar_url || '' };
-      let catInfo = null;
+      let catInfo: any = null;
       if (catId) {
         const { data: cat } = await supabase.from('stray_cats').select('*').eq('id', catId).single();
         if (cat) catInfo = { _id: cat.id, name: cat.name, breed: cat.breed, photos: cat.photos || [] };
@@ -286,17 +293,17 @@ async function feedOps(event: any) {
         .order('create_time', { ascending: false })
         .range(page * pageSize, page * pageSize + pageSize - 1);
       if (error) throw error;
-      const feedIds = (data || []).map((f) => f.id);
-      let liked: any[] = [];
+      const feedIds = (data || []).map((f: any) => f.id);
+      let liked: string[] = [];
       if (feedIds.length) {
         const { data: likes } = await supabase
           .from('feed_likes')
           .select('feed_id')
           .in('feed_id', feedIds)
           .eq('user_id', openid);
-        liked = (likes || []).map((l) => l.feed_id);
+        liked = (likes || []).map((l: any) => l.feed_id);
       }
-      const feeds = (data || []).map((f) => ({
+      const feeds = (data || []).map((f: any) => ({
         ...rowToClient(f),
         isLiked: liked.includes(f.id),
         userName: f.author_name,
@@ -313,13 +320,13 @@ async function feedOps(event: any) {
         .order('create_time', { ascending: false })
         .range(page * pageSize, page * pageSize + pageSize - 1);
       if (error) throw error;
-      const feedIds = (data || []).map((f) => f.id);
+      const feedIds = (data || []).map((f: any) => f.id);
       const likeCountMap: any = {};
       if (feedIds.length) {
         const { data: likes } = await supabase.from('feed_likes').select('feed_id').in('feed_id', feedIds);
-        (likes || []).forEach((l) => (likeCountMap[l.feed_id] = (likeCountMap[l.feed_id] || 0) + 1));
+        (likes || []).forEach((l: any) => (likeCountMap[l.feed_id] = (likeCountMap[l.feed_id] || 0) + 1));
       }
-      const feeds = (data || []).map((f) => ({
+      const feeds = (data || []).map((f: any) => ({
         ...rowToClient(f),
         likeCount: likeCountMap[f.id] || 0,
       }));
@@ -330,7 +337,7 @@ async function feedOps(event: any) {
       const { data: feed, error } = await supabase.from('feeds').select('*').eq('id', feedId).single();
       if (error) throw error;
       if (feed.author_id !== openid) return { error: '无权编辑' };
-      let catInfo = null;
+      let catInfo: any = null;
       if (catId) {
         const { data: cat } = await supabase.from('stray_cats').select('*').eq('id', catId).single();
         if (cat) catInfo = { _id: cat.id, name: cat.name, breed: cat.breed, photos: cat.photos || [] };
@@ -352,15 +359,15 @@ async function feedOps(event: any) {
       if (existing) return { success: true, message: '已点赞' };
       await supabase.from('feed_likes').insert({ feed_id: feedId, user_id: openid });
       const { data: f } = await supabase.from('feeds').select('like_count').eq('id', feedId).single();
-      await supabase.from('feeds').update({ like_count: (f ? f.like_count || 0 : 0) + 1 }).eq('id', feedId);
+      await supabase.from('feeds').update({ like_count: (f?.like_count || 0) + 1 }).eq('id', feedId);
       const { data: feed } = await supabase.from('feeds').select('*').eq('id', feedId).single();
       if (feed && feed.author_id && feed.author_id !== openid) {
         const { data: sender } = await supabase.from('users').select('*').eq('id', openid).single();
-        await createNotification({
+        await createNotification(supabase, {
           recipientId: feed.author_id,
           senderId: openid,
-          senderName: sender ? sender.nick_name || '匿名用户' : '匿名用户',
-          senderAvatar: sender ? sender.avatar_url || '' : '',
+          senderName: sender?.nick_name || '匿名用户',
+          senderAvatar: sender?.avatar_url || '',
           type: 'like',
           feedId,
           feedContent: (feed.content || '').slice(0, 50),
@@ -378,7 +385,7 @@ async function feedOps(event: any) {
         .maybeSingle();
       if (like) await supabase.from('feed_likes').delete().eq('id', like.id);
       const { data: f } = await supabase.from('feeds').select('like_count').eq('id', feedId).single();
-      await supabase.from('feeds').update({ like_count: Math.max(0, (f ? f.like_count || 1 : 1) - 1) }).eq('id', feedId);
+      await supabase.from('feeds').update({ like_count: Math.max(0, (f?.like_count || 1) - 1) }).eq('id', feedId);
       return { success: true };
     }
     case 'delete': {
@@ -408,7 +415,7 @@ async function feedOps(event: any) {
       const { feedId, content, parentId } = event;
       if (!content || !content.trim()) return { error: '评论内容不能为空' };
       const { data: u } = await supabase.from('users').select('*').eq('id', openid).single();
-      const userInfo = { nickName: u ? u.nick_name || '匿名用户' : '匿名用户', avatarUrl: u ? u.avatar_url || '' : '' };
+      const userInfo = { nickName: u?.nick_name || '匿名用户', avatarUrl: u?.avatar_url || '' };
       const { data, error } = await supabase
         .from('feed_comments')
         .insert({
@@ -424,10 +431,10 @@ async function feedOps(event: any) {
         .single();
       if (error) throw error;
       const { data: f } = await supabase.from('feeds').select('comment_count').eq('id', feedId).single();
-      await supabase.from('feeds').update({ comment_count: (f ? f.comment_count || 0 : 0) + 1 }).eq('id', feedId);
+      await supabase.from('feeds').update({ comment_count: (f?.comment_count || 0) + 1 }).eq('id', feedId);
       const { data: feed } = await supabase.from('feeds').select('*').eq('id', feedId).single();
       if (feed && feed.author_id && feed.author_id !== openid) {
-        await createNotification({
+        await createNotification(supabase, {
           recipientId: feed.author_id,
           senderId: openid,
           senderName: userInfo.nickName,
@@ -451,7 +458,7 @@ async function feedOps(event: any) {
         .range(page * pageSize, page * pageSize + pageSize - 1);
       if (error) throw error;
       const comments = await Promise.all(
-        (data || []).map(async (c) => {
+        (data || []).map(async (c: any) => {
           let replies: any[] = [];
           let replyCount = 0;
           const { data: r } = await supabase
@@ -480,11 +487,11 @@ async function feedOps(event: any) {
         const { data: f } = await supabase.from('feeds').select('comment_count').eq('id', comment.feed_id).single();
         await supabase
           .from('feeds')
-          .update({ comment_count: Math.max(0, (f ? f.comment_count || 1 : 1) - 1 - (replies ? replies.length : 0)) })
+          .update({ comment_count: Math.max(0, (f?.comment_count || 1) - 1 - (replies?.length || 0)) })
           .eq('id', comment.feed_id);
       } else {
         const { data: f } = await supabase.from('feeds').select('comment_count').eq('id', comment.feed_id).single();
-        await supabase.from('feeds').update({ comment_count: Math.max(0, (f ? f.comment_count || 1 : 1) - 1) }).eq('id', comment.feed_id);
+        await supabase.from('feeds').update({ comment_count: Math.max(0, (f?.comment_count || 1) - 1) }).eq('id', comment.feed_id);
       }
       return { success: true };
     }
@@ -580,11 +587,11 @@ async function paymentOps(event: any) {
       const { data: c } = await supabase.from('crowdfundings').select('raised_amount').eq('id', crowdId).single();
       await supabase
         .from('crowdfundings')
-        .update({ raised_amount: (c ? c.raised_amount || 0 : 0) + amount, update_time: new Date().toISOString() })
+        .update({ raised_amount: (c?.raised_amount || 0) + amount, update_time: new Date().toISOString() })
         .eq('id', crowdId);
       const { data: crowd } = await supabase.from('crowdfundings').select('*').eq('id', crowdId).single();
       if (crowd && crowd.initiator_id && crowd.initiator_id !== openid) {
-        await createNotification({
+        await createNotification(supabase, {
           recipientId: crowd.initiator_id,
           senderId: openid,
           senderName: donorName || '匿名爱心人士',
@@ -613,7 +620,7 @@ async function notifyOps(event: any) {
   const openid = event.openid;
   switch (event.action) {
     case 'create':
-      return await createNotification(event);
+      return await createNotification(supabase, event);
     case 'list': {
       const { type, page = 0, pageSize = 20 } = event;
       let query = supabase.from('notifications').select('*').eq('recipient_id', openid);
@@ -669,11 +676,11 @@ async function mergeOps(event: any) {
         .from('merge_requests')
         .insert({
           from_cat_id: fromCatId,
-          from_cat_name: fromCat.data ? fromCat.data.name : null,
-          from_user_id: fromCat.data ? fromCat.data.creator_id : null,
+          from_cat_name: fromCat.data?.name,
+          from_user_id: fromCat.data?.creator_id,
           to_cat_id: toCatId,
-          to_cat_name: toCat.data ? toCat.data.name : null,
-          to_user_id: toCat.data ? toCat.data.creator_id : null,
+          to_cat_name: toCat.data?.name,
+          to_user_id: toCat.data?.creator_id,
           applicant_id: openid,
           status: 'pending',
           note: note || '疑似同一只猫',
@@ -693,8 +700,10 @@ async function mergeOps(event: any) {
       ]);
       const fromTime = new Date(fromCat.data.last_seen_time || 0).getTime();
       const toTime = new Date(toCat.data.last_seen_time || 0).getTime();
-      const mainCat = fromTime <= toTime ? fromCat.data : toCat.data;
-      const subCat = fromTime <= toTime ? toCat.data : fromCat.data;
+      const [mainCat, subCat] =
+        fromTime <= toTime
+          ? [fromCat.data, toCat.data]
+          : [toCat.data, fromCat.data];
       const aliases = [...(mainCat.aliases || [])];
       if (!aliases.includes(subCat.name)) aliases.push(subCat.name);
       const allPhotos = [...(mainCat.photos || []), ...(subCat.photos || [])];
@@ -760,8 +769,8 @@ async function dbProxy(event: any) {
       let query = supabase.from(collection).select('*');
       query = applyWhere(query, where);
       query = applyOrder(query, orderBy);
-      const from = skip != null ? skip : 0;
-      const to = from + (limit != null ? limit : 100) - 1;
+      const from = skip ?? 0;
+      const to = from + (limit ?? 100) - 1;
       query = query.range(from, to);
       const { data: rows, error } = await query;
       if (error) throw error;
@@ -801,8 +810,8 @@ async function dbProxy(event: any) {
 // ============================================================
 // 路由
 // ============================================================
-async function route(body: any) {
-  const { name } = body;
+async function route(body: any): Promise<any> {
+  const { name, action } = body;
   switch (name) {
     case 'login':
       return await loginAction(body);
@@ -825,74 +834,70 @@ async function route(body: any) {
   }
 }
 
-// ---------- 文件上传代理（前端 wx.uploadFile 发 multipart 到此处） ----------
-async function uploadAction(cloudPathRaw: string, fileBuffer: Uint8Array, fileType: string) {
-  if (!fileBuffer) return { error: 'missing file' };
-  if (!cloudPathRaw) return { error: 'missing cloudPath' };
+// ---------- 文件上传代理（前端 wx.uploadFile 发到此处，Edge 用 service_role 写入 Storage） ----------
+async function uploadAction(req: Request) {
+  const form = await req.formData();
+  const file = form.get('file') as File | null;
+  const rawCloudPath = form.get('cloudPath') as string | null;
 
-  let cloudPath = cloudPathRaw
+  if (!file) return { error: 'missing file' };
+  if (!rawCloudPath) return { error: 'missing cloudPath' };
+
+  // 清理路径：去前后空白/引号、去前导斜杠、把反斜杠转正斜杠
+  let cloudPath = rawCloudPath
     .trim()
     .replace(/^["']|["']$/g, '')
     .replace(/^\/+/, '')
     .replace(/\\/g, '/');
-  if (!cloudPath) return { error: 'cloudPath is empty after trim (raw=' + JSON.stringify(cloudPathRaw) + ')' };
+  if (!cloudPath) return { error: 'cloudPath is empty after trim (raw=' + JSON.stringify(rawCloudPath) + ')' };
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
 
   const { data, error } = await supabase.storage
     .from('cat-images')
-    .upload(cloudPath, fileBuffer, {
-      contentType: fileType || 'application/octet-stream',
+    .upload(cloudPath, bytes, {
+      contentType: file.type || 'application/octet-stream',
       upsert: true,
     });
 
   if (error) {
-    console.error('storage upload error', { cloudPath, type: fileType, size: fileBuffer.byteLength, error });
+    console.error('storage upload error', { cloudPath, type: file.type, size: bytes.length, error });
     return { error: `[${cloudPath}] ${error.message}` };
   }
 
-  const { data: urlData } = supabase.storage.from('cat-images').getPublicUrl(cloudPath);
-  return { fileID: urlData.publicUrl };
+  // 注意：这里不能用 supabase.storage.getPublicUrl()
+  // —— 自托管下它会按内网 SB_URL（api-gw:8000）拼地址，小程序根本加载不到。
+  return { fileID: publicFileUrl(cloudPath) };
 }
 
-// ---------- 云函数入口（Supabase Edge Function / Deno） ----------
-serve(async (req: Request) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Authorization, apikey, Content-Type',
-    'Access-Control-Max-Age': '3600',
-  };
+// ---------- HTTP 入口 ----------
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('', { status: 204, headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
-
   try {
-    const contentType = (req.headers.get('content-type') || '').toLowerCase();
+    const contentType = req.headers.get('content-type') || '';
     let result: any;
     if (contentType.includes('multipart/form-data')) {
-      const form = await req.formData();
-      const file = form.get('file');
-      const cloudPath = String(form.get('cloudPath') || '');
-      if (file && typeof file !== 'string') {
-        const f = file as File;
-        const buf = new Uint8Array(await f.arrayBuffer());
-        result = await uploadAction(cloudPath, buf, f.type || 'application/octet-stream');
-      } else {
-        result = { error: 'missing file' };
-      }
+      result = await uploadAction(req);
     } else {
       const body = await req.json();
       result = await route(body);
     }
     return new Response(JSON.stringify({ result }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (err: any) {
+    console.error('Edge Function error', err);
+    return new Response(JSON.stringify({ result: { error: err.message || '服务器错误' } }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (err) {
-    console.error('Function error', err);
-    return new Response(
-      JSON.stringify({ result: { error: (err as Error).message || '服务器错误' } }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   }
 });

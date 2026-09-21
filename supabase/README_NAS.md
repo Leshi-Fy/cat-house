@@ -81,82 +81,78 @@ using ( bucket_id = 'cat-images' );
 
 ## 三、部署 Edge Function（api）
 
-> ✅ **2026-09-16 补上了缺失文件**：`cat-house/supabase/functions/api/index.ts` 现已由 `supabase/memfire/index.js`（Node 版）移植而来，
-> 是整个架构里**唯一缺的关键文件**——前端 `utils/supabase.js` 所有请求（登录/库/上传）都打到它（`/functions/v1/api`）。
-> 不要混用 `memfire/index.js`（那是 MemFire 云函数格式，不是 Supabase Edge Function）。
+> ⚠️ **自托管的部署机制和云上完全不同**：没有 Studio「Create a function」，也没有 `supabase functions deploy`。
+> 别去 Studio 找那个入口（自托管没有这个能力），按下面做。
 
-### 方式 A（推荐，免 CLI）：Studio 粘贴部署
-1. 浏览器开 `http://192.168.1.50:8000`（Supabase Studio）→ **Edge Functions → Create a new function** → Name 填 `api`。
-2. 把 `cat-house/supabase/functions/api/index.ts` **整段**粘贴覆盖默认模板 → **Deploy function**。
-3. 进入函数 → **Secrets / Environment variables**，设置 4 个变量：
-   - `SB_URL=http://kong:8000`（函数跑在 NAS 内网，连 Kong 用服务名；填 `http://192.168.1.50:8000` 也行）
-   - `SB_SERVICE_ROLE_KEY=<你的 service_role key，来自 nas-supabase/.env>`
-   - `WECHAT_APPID=wx9c42b2dc8d0f83eb`
-   - `WECHAT_SECRET=<你的小程序 AppSecret，mp.weixin.qq.com → 开发设置>`
-4. 找到 **Verify JWT** 开关并**关闭**（让前端匿名即可调用；函数内部用 service_role 干活）。
-5. 改完 Secrets 再点一次 **Deploy**，让函数重新加载环境变量。
+### 1. 机制：放文件 + 重启
 
-### 方式 B（CLI 容器）：`supabase functions deploy api`
-```bash
-docker run --rm \
-  -e SUPABASE_URL=http://host.docker.internal:8000 \
-  -e SUPABASE_SERVICE_ROLE_KEY=<你的SERVICE_ROLE_KEY> \
-  -v $PWD/supabase/functions:/functions \
-  supabase/cli functions deploy api --no-verify-jwt
-# 设 Secrets（函数内网地址）
-docker run --rm \
-  -e SUPABASE_URL=http://host.docker.internal:8000 \
-  -e SUPABASE_SERVICE_ROLE_KEY=<你的SERVICE_ROLE_KEY> \
-  supabase/cli secrets set \
-    SB_URL=http://kong:8000 \
-    SB_SERVICE_ROLE_KEY=<你的SERVICE_ROLE_KEY> \
-    WECHAT_APPID=wx9c42b2dc8d0f83eb \
-    WECHAT_SECRET=<你的微信AppSecret>
+函数容器把宿主 `volumes/functions/` 挂到容器内 `/home/deno/functions`，
+容器里的 `main/index.ts` 按 **URL 第一段** 动态找目录（**无白名单、无注册表**）：
+
+```ts
+const service_name = path_parts[1]                            // /api  ->  "api"
+const servicePath = `/home/deno/functions/${service_name}`    // -> /home/deno/functions/api
 ```
-> CLI 部署需要项目里有 `supabase/config.toml`（自托管可放一个最小版：`[api] enabled = true`）。若没有，优先用方式 A。
 
-### 快速联调兜底（自托管 Edge Function 部署卡住时用）
-若 NAS 的 Edge Function 部署走不通，可临时把 Node 版 `supabase/memfire/index.js` 起成一个小 HTTP 服务（加 ~20 行 http server 包装），
-监听某端口，再把 `utils/supabase.js` 顶部的 `SUPABASE_URL` 改指向该服务（函数内仍连 NAS Supabase 的 service_role）。
-这样**不动前端架构**就能先在局域网联调通，正式上线再换回 Edge Function。需要我直接写这个 Node 服务版就说一声。
+所以只要 `volumes/functions/api/index.ts` 存在，`POST /functions/v1/api` 就能命中。
 
-### 2. 部署（用 supabase cli，容器方式避免 NAS 装二进制）
+**部署 = 两步**：
+
+1. 把 `api/index.ts` 放到 NAS 的 `volumes/functions/api/`
+   （**本套件 `nas-supabase/volumes/functions/api/index.ts` 已经放好了**，直接用）
+2. 重启容器：`docker restart supabase-edge-functions`
+
+### 2. 环境变量：已在 compose 里，不用在面板上设
+
+`compose.ugos.yaml` 的 `functions` 服务里已经写好（含 `VERIFY_JWT: "false"`）：
+
+| 变量 | 值 | 作用 |
+|---|---|---|
+| `SB_URL` | `http://api-gw:8000` | 函数在 Docker 内网访问 PostgREST / Storage |
+| `SB_PUBLIC_URL` | `http://192.168.1.50:8000` | **拼图片公开 URL**（必须是客户端可达的地址） |
+| `SB_SERVICE_ROLE_KEY` | service_role 密钥 | 绕过 RLS 读写库与桶 |
+| `WECHAT_APPID` / `WECHAT_SECRET` | 小程序凭据 | `code2session` 换 openid |
+| `VERIFY_JWT` | `false` | 关闭入站 JWT 校验（联调期） |
+
+> ⚠️ **`SB_PUBLIC_URL` 就是"图片能不能显示"的开关**。它若填成内网服务名（如 `http://api-gw:8000`），
+> 上传接口返回的图片 URL 小程序解析不了，图全裂。**换成 Tunnel 域名后必须同步改它并重启 functions。**
+
+### 3. 验证函数活着
+
+在能访问 NAS 的机器上执行：
+
 ```bash
-docker run --rm \
-  -e SUPABASE_URL=http://host.docker.internal:8000 \
-  -e SUPABASE_SERVICE_ROLE_KEY=<你的SERVICE_ROLE_KEY> \
-  -v $PWD/functions:/functions \
-  supabase/cli functions deploy api
-```
-> `host.docker.internal` 在绿联 Docker 通常可用（连 NAS 宿主网络的 Kong:8000）。
-> 若不行，改成 NAS 内网 IP：`http://<NAS_IP>:8000`。
-
-### 3. 设置函数 Secrets（内网地址，不是 Tunnel 域名）
-函数里读的 `SB_URL` 必须是**内网 Kong 地址**（函数跑在 NAS 内网，连 Kong 用内网）：
-```bash
-docker run --rm \
-  -e SUPABASE_URL=http://host.docker.internal:8000 \
-  -e SUPABASE_SERVICE_ROLE_KEY=<你的SERVICE_ROLE_KEY> \
-  supabase/cli secrets set \
-    SB_URL=http://kong:8000 \
-    SB_SERVICE_ROLE_KEY=<你的SERVICE_ROLE_KEY> \
-    WECHAT_APPID=wx9c42b2dc8d0f83eb \
-    WECHAT_SECRET=<你的微信AppSecret>
-```
-> 注：`SB_URL` 用 `http://kong:8000`（Compose 网络内 Kong 服务名）。如果上面 deploy 时连不上，改 `http://host.docker.internal:8000` 或 `http://<NAS_IP>:8000`。
-
-### 4. 验证函数
-```bash
-curl -X POST http://<NAS_IP>:8000/functions/v1/api \
+curl -X POST http://192.168.1.50:8000/functions/v1/api \
   -H "Authorization: Bearer <ANON_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"name":"login","code":"dummy"}'
 ```
-返回 `{"result":{"error":"invalid code"}}` 即函数活了。
+
+| 返回 | 含义 |
+|---|---|
+| `{"result":{"error":...}}`（如 code 无效） | ✅ **函数活着**，路由通了 |
+| 404 / `missing function name` | 目录没放对 → 检查 NAS 上 `volumes/functions/api/index.ts` 是否存在 |
+| 500 | 函数内部报错 → `docker logs supabase-edge-functions --tail 50` |
+
+### 4. ⚠️ 以套件版函数为准（仓库版曾是回归版）
+
+函数代码存在**两份副本**：套件 `nas-supabase/volumes/functions/api/index.ts` 与项目仓库 `supabase/functions/api/index.ts`。
+仓库那份曾出现回归（已修正为与套件版一致，md5 相同）：
+
+- 用了 `import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'`
+  → 冷启动要连 deno.land，NAS 外网受限时可能直接失败。套件版用**原生 `Deno.serve`**，无外网依赖。
+- 用 `supabase.storage.getPublicUrl()` 拼图片地址
+  → 拿到的是内网 `http://api-gw:8000/...`，**小程序永远打不开图**。
+  套件版用 `SB_PUBLIC_URL` 拼公开地址，并带 `normalizeSupabaseUrl()` 防 PGRST125。
+
+**改函数时：先改套件版，再 `cp` 到仓库版，最后 `md5sum` 比对确认两份一致。**
 
 ---
 
 ## 四、公网 HTTPS（Cloudflare Tunnel）
+
+> 📌 本节的 `cloudflared --url` 是**临时快速隧道**（域名每次重启都变，仅供临时验证）。
+> 要固定域名 / 小程序正式发布，走套件内 `域名绑定-Cloudflare-Tunnel.md`（含备案前置条件与三条上线路线）。
 
 小程序 request 域名必须 HTTPS 且不能填 IP。家庭 NAS 没有公网域名，用 **Cloudflare Tunnel**（免费、不用公网 IP、不用备案）。
 
