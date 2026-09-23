@@ -24,7 +24,7 @@ Page({
     loading: true,
     showGuide: false,
     hasMore: true,      // 云函数是否还有更多
-    _page: 1,           // 云函数分页页码
+    _page: 0,           // 分页页码（0 基，与后端 /api/cats/nearby 一致）
     _fetching: false,   // 是否正在请求云函数
     // 拖拽状态
     dragOffsetX: 0,
@@ -63,7 +63,7 @@ Page({
     // 从创建页返回时强制刷新列表，让新猫立刻出现
     if (app.globalData._refreshHome) {
       app.globalData._refreshHome = false;
-      this.setData({ cats: [], currentIndex: 0, _page: 1, hasMore: true });
+      this.setData({ cats: [], currentIndex: 0, _page: 0, hasMore: true });
       if (this.data.location) {
         this._loadInitial(this.data.location);
       } else {
@@ -81,7 +81,7 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.setData({ cats: [], currentIndex: 0, _page: 1, hasMore: true });
+    this.setData({ cats: [], currentIndex: 0, _page: 0, hasMore: true });
     if (this.data.location) {
       this._loadInitial(this.data.location).then(() => wx.stopPullDownRefresh());
     } else {
@@ -109,13 +109,16 @@ Page({
       let cats = raw;
       if (location) {
         cats = raw.map(cat => {
-          let dist = '';
+          let meters = null;
           if (cat.location && cat.location.coordinates) {
-            const m = getDistance(location.latitude, location.longitude,
-              cat.location.coordinates[1], cat.location.coordinates[0]);
-            dist = formatDistance(m);
+            meters = Math.round(getDistance(location.latitude, location.longitude,
+              cat.location.coordinates[1], cat.location.coordinates[0]));
           }
-          return { ...cat, distance: dist };
+          return {
+            ...cat,
+            distance: meters === null ? '' : formatDistance(meters),
+            _distance: meters === null ? Number.MAX_SAFE_INTEGER : meters,
+          };
         });
       }
       this.setData({ cats, currentIndex: 0, loading: false });
@@ -149,15 +152,20 @@ Page({
         });
 
         const batch = (res.data || []).map(cat => {
-          let dist = '';
-          if (cat.distance !== undefined) {
-            dist = formatDistance(cat.distance);
+          // _distance 保留"米"数值用于排序；distance 只是展示文案（形如 "900m"/"1.2km"）。
+          // ⚠️ 不能用 parseFloat(distance) 排序："1.2km" 会被解析成 1.2，反而排在 "900m" 前面。
+          let meters = null;
+          if (cat.distance !== undefined && cat.distance !== null) {
+            meters = Number(cat.distance) || 0;
           } else if (cat.location && cat.location.coordinates) {
-            const m = getDistance(location.latitude, location.longitude,
-              cat.location.coordinates[1], cat.location.coordinates[0]);
-            dist = formatDistance(m);
+            meters = Math.round(getDistance(location.latitude, location.longitude,
+              cat.location.coordinates[1], cat.location.coordinates[0]));
           }
-          return { ...cat, distance: dist };
+          return {
+            ...cat,
+            distance: meters === null ? '' : formatDistance(meters),
+            _distance: meters === null ? Number.MAX_SAFE_INTEGER : meters,
+          };
         });
 
         if (batch.length === 0) {
@@ -167,10 +175,10 @@ Page({
 
         // 合并并按距离重新排序（去重）
         result = result.concat(batch);
-        // 按 distance 字段排序，无距离的排最后
+        // 按 _distance（米，数值）升序；无距离的排最后
         result.sort((a, b) => {
-          const da = a.distance ? parseFloat(a.distance) : 999999;
-          const db = b.distance ? parseFloat(b.distance) : 999999;
+          const da = typeof a._distance === 'number' ? a._distance : Number.MAX_SAFE_INTEGER;
+          const db = typeof b._distance === 'number' ? b._distance : Number.MAX_SAFE_INTEGER;
           return da - db;
         });
         // 去重
@@ -455,12 +463,32 @@ Page({
     }
   },
 
+  /** 点📍 重新定位：必须 force=true，否则拿到的是首次定位缓存，点了等于没点 */
   async relocate() {
-    const location = await app.getLocation();
-    if (location) {
-      this.setData({ location, cats: [], currentIndex: 0, _page: 1, hasMore: true });
-      await this._loadInitial(location);
+    wx.showLoading({ title: '定位中...', mask: true });
+    const location = await app.getLocation(true);
+    wx.hideLoading();
+
+    if (!location) {
+      // 定位失败（多为未授权）：给明确提示并引导去设置页，同时用「不带距离」的列表兜底
+      wx.showModal({
+        title: '无法获取位置',
+        content: '请允许微信获取你的位置，否则只能按时间浏览附近猫咪',
+        confirmText: '去设置',
+        cancelText: '取消',
+        success: (r) => { if (r.confirm) wx.openSetting({}); },
+      });
+      this.setData({ cats: [], currentIndex: 0, _page: 0, hasMore: true });
+      await this._loadInitialFallback();
+      return;
     }
+
+    this.setData({ location, cats: [], currentIndex: 0, _page: 0, hasMore: true });
+    await this._loadInitial(location);
+    wx.showToast({
+      title: this.data.cats.length ? '已更新位置' : '附近暂无猫咪',
+      icon: 'none',
+    });
   },
 
   /** 图片加载失败时兜底，避免空白 */

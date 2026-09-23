@@ -1,0 +1,22 @@
+# ============================================================
+# 线上环境（云服务器 + 已备案域名 + HTTPS）
+# 激活：java -jar server.jar --spring.profiles.active=prod
+#       或 ENV SPRING_PROFILES_ACTIVE=prod
+# 敏感项（数据库密码、AppSecret）建议用环境变量注入，不要明文提交到仓库。
+# ============================================================
+
+spring:
+  datasource:
+    # 改为云服务器 MySQL 地址；useSSL=true 符合线上安全基线
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/cathouse?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+
+cathouse:
+  wechat:
+    # 生产建议用环境变量覆盖明文： -Dcathouse.wechat.secret=xxx 或 ENV cathouse.wechat.secret
+    secret: ${WECHAT_SECRET:e7de696e0acc940ebf5b6ce1a0488248}
+  file:
+    # 必须改成你的 https 域名（微信正式发布要求 HTTPS + 已备案域名）
+    # 例如 base-url: https://cat.example.com
+    base-url: https://your-domain.com

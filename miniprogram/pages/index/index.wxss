@@ -144,18 +144,19 @@
   cursor: grab;
 }
 
-/* 全卡片背景照片 */
+/* 全卡片背景照片：固定在最底层，避免盖住信息层 */
 .cat-card-bg {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 1;
 }
 
-/* 顶层卡片的可拖拽图片区域 */
+/* 顶层卡片的可拖拽图片区域：与背景同层即可，靠 catchtouch* 接收手势 */
 .cat-card-draggable {
-  z-index: 5;
+  z-index: 1;
 }
 
 /* 底部渐变遮罩 */
@@ -164,9 +165,10 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 300rpx;
-  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+  height: 360rpx;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 35%, rgba(0,0,0,0.18) 70%, transparent 100%);
   pointer-events: none;
+  z-index: 2;
 }
 
 /* 滑动标签（跳过/看看） */
@@ -179,7 +181,7 @@
   font-weight: 800;
   border: 6rpx solid;
   pointer-events: none;
-  z-index: 5;
+  z-index: 4;
 }
 
 .skip-tag {
@@ -207,6 +209,8 @@
   background: rgba(0,0,0,0.5);
   padding: 8rpx 16rpx;
   border-radius: 24rpx;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .photo-count-icon {
@@ -219,7 +223,7 @@
   font-weight: 500;
 }
 
-/* 猫咪信息叠加层 */
+/* 猫咪信息叠加层：z-index 必须高于背景图，否则会被图片盖住 */
 .cat-info-overlay {
   position: absolute;
   bottom: 0;
@@ -227,6 +231,8 @@
   right: 0;
   padding: 32rpx;
   padding-bottom: 40rpx;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .cat-name-row {

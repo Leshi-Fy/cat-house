@@ -1,0 +1,51 @@
+# ============================================================
+# 公共配置（所有环境共用）。环境相关项见 application-dev.yml / application-prod.yml
+# 激活环境：默认 dev；线上用 --spring.profiles.active=prod 或 ENV SPRING_PROFILES_ACTIVE=prod
+# ============================================================
+
+server:
+  port: 8787
+  tomcat:
+    max-swallow-size: 10MB
+
+spring:
+  profiles:
+    active: dev
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  jackson:
+    # 注意：date-format 只对 java.util.Date / Calendar 生效，对 LocalDateTime 无效。
+    # 项目实体统一用 LocalDateTime，由 JavaTimeModule 输出 ISO-8601（2026-09-23T14:34:06）。
+    # 前端 utils/util.js 用 new Date(str) 解析，必须带 "T"：空格分隔的格式在 iOS 真机（JSCore）
+    # 会解析失败得到 Invalid Date。下面的 date-format 只为兜底，与 ISO 格式保持一致。
+    date-format: "yyyy-MM-dd'T'HH:mm:ss"
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: input          # 主键由代码用 UUID.randomUUID() 生成（与前端既有 uuid 形态一致）
+  type-aliases-package: com.cathouse.entity
+  mapper-locations: classpath*:/mapper/*.xml
+
+cathouse:
+  wechat:
+    appid: wx9c42b2dc8d0f83eb
+    # AppSecret 与 appid 绑定，dev/prod 相同；生产建议用环境变量覆盖，勿明文提交：
+    #   java -jar server.jar --spring.profiles.active=prod -Dcathouse.wechat.secret=xxx
+    #   或 ENV: cathouse.wechat.secret
+    secret: e7de696e0acc940ebf5b6ce1a0488248
+  file:
+    # 上传文件保存目录（绝对或相对均可，相对路径相对于 jar 启动目录）
+    upload-dir: ./uploads
+    # 允许访问的静态资源路径前缀（与 WebConfig 对应）
+    url-prefix: /uploads
+    # base-url（返回给前端的文件访问基址）随环境变化，见 dev/prod 配置

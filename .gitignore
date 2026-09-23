@@ -12,3 +12,26 @@ $RECYCLE.BIN/
 
 # Node.js
 node_modules/
+
+# IntelliJ IDEA（本地工程配置，含个人 SDK / 运行配置，不入库）
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Java / Maven 构建产物
+target/
+build/
+*.class
+*.jar
+!mvnw
+.mvn/wrapper/maven-wrapper.jar
+
+# 后端运行时上传目录（用户上传的图片等，不入库）
+uploads/
+server/uploads/
+
+# 本地私密笔记（含 Supabase / 数据库 / AppSecret 明文），严禁入库
+cathouse.txt
+*.local.yml
+application-local.yml

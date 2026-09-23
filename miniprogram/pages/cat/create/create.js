@@ -304,6 +304,15 @@ Page({
         data: { action: 'create', catData },
       });
 
+      // 后端业务错误会被 api.js 归一化成 { result: { error } }，这里必须显式拦截，
+      // 否则会走到下面直接提示"创建成功"，实际并没写库（表现为首页看不到新猫）
+      if (!result || result.error || !result.catId) {
+        wx.hideLoading();
+        showError('创建失败：' + ((result && result.error) || '后端未返回 catId'));
+        this.setData({ submitting: false });
+        return;
+      }
+
       wx.hideLoading();
       wx.showToast({ title: '创建成功！🐾', icon: 'success' });
 

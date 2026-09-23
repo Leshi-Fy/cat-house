@@ -1,0 +1,22 @@
+# ============================================================
+# 开发 / 局域网联调环境（NAS、本机、同局域网真机调试）
+# 激活：默认即 dev（application.yml 中 spring.profiles.active=dev）
+# ============================================================
+
+spring:
+  datasource:
+    # 本地 MySQL；首次运行前先建库：
+    #   CREATE DATABASE cathouse CHARACTER SET utf8mb4;
+    url: jdbc:mysql://localhost:3306/cathouse?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: root
+
+cathouse:
+  file:
+    # 返回给小程序的文件访问基址（上传后拿到的图片 URL 前缀）。
+    # ⚠️ 这个地址是「小程序拿去访问图片」的地址，不是后端自己的地址，填错会导致图片全部打不开。
+    # - 开发者工具模拟器，后端就跑在本机：127.0.0.1（dev 档默认，当前场景）
+    # - 手机真机调试：改成「运行后端的那台机器」的局域网 IP，例如 http://192.168.10.168:8787
+    #   真机用 127.0.0.1 是访问不到电脑的（那指向手机自己）。
+    # 端口必须与 server.port 一致（当前 8787）。改本文件后需重启后端生效。
+    base-url: http://127.0.0.1:8787
