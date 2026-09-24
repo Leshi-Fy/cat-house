@@ -50,15 +50,15 @@ public class PaymentService {
             c.setRaisedAmount((c.getRaisedAmount() == null ? 0 : c.getRaisedAmount()) + amount);
             c.setUpdateTime(LocalDateTime.now());
             crowdfundingMapper.updateById(c);
-            if (c.getInitiatorId() != null && !c.getInitiatorId().equals(openid)) {
-                User sender = userMapper.selectById(openid);
-                notifyService.createNotification(c.getInitiatorId(), openid,
-                        sender != null ? sender.getNickName() : donorName,
-                        sender != null ? sender.getAvatarUrl() : "",
-                        "donate", null, crowdId,
-                        (c.getDescription() == null ? "" : c.getDescription()).substring(0, Math.min(50, c.getDescription() == null ? 0 : c.getDescription().length())),
-                        null, amount);
-            }
+            // 与点赞 / 评论保持一致：自己给自己发起的众筹捐款同样留痕，消息中心才看得到历史捐款
+            User sender = userMapper.selectById(openid);
+            notifyService.createNotification(
+                    c.getInitiatorId() == null ? openid : c.getInitiatorId(), openid,
+                    sender != null ? sender.getNickName() : donorName,
+                    sender != null ? sender.getAvatarUrl() : "",
+                    "donate", null, crowdId,
+                    (c.getDescription() == null ? "" : c.getDescription()).substring(0, Math.min(50, c.getDescription() == null ? 0 : c.getDescription().length())),
+                    null, amount);
         }
     }
 

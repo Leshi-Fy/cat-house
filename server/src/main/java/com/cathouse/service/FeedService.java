@@ -116,12 +116,16 @@ public class FeedService {
         if (f != null) {
             f.setLikeCount((f.getLikeCount() == null ? 0 : f.getLikeCount()) + 1);
             feedMapper.updateById(f);
-            if (f.getAuthorId() != null && !f.getAuthorId().equals(openid)) {
+            // 自己赞自己的动态也会记一条通知（消息中心要能看到「自己发出的互动」），
+            // 重复点赞的去重逻辑在 NotifyService 内部完成。
+            if (f.getAuthorId() != null) {
                 User sender = userMapper.selectById(openid);
+                String content = f.getContent() == null ? "" : f.getContent();
                 notifyService.createNotification(f.getAuthorId(), openid,
                         sender != null ? sender.getNickName() : "匿名用户",
                         sender != null ? sender.getAvatarUrl() : "",
-                        "like", feedId, null, (f.getContent() == null ? "" : f.getContent()).substring(0, Math.min(50, f.getContent() == null ? 0 : f.getContent().length())), null, 0);
+                        "like", feedId, null,
+                        content.substring(0, Math.min(50, content.length())), null, 0);
             }
         }
     }
@@ -131,6 +135,8 @@ public class FeedService {
         qw.eq("feed_id", feedId).eq("user_id", openid);
         FeedLike like = feedLikeMapper.selectOne(qw);
         if (like != null) feedLikeMapper.deleteById(like.getId());
+        // 取消点赞同时清掉对应的点赞通知
+        notifyService.removeLikeNotification(openid, feedId, null);
         Feed f = feedMapper.selectById(feedId);
         if (f != null) {
             f.setLikeCount(Math.max(0, (f.getLikeCount() == null ? 1 : f.getLikeCount()) - 1));
@@ -171,9 +177,11 @@ public class FeedService {
         if (f != null) {
             f.setCommentCount((f.getCommentCount() == null ? 0 : f.getCommentCount()) + 1);
             feedMapper.updateById(f);
-            if (f.getAuthorId() != null && !f.getAuthorId().equals(openid)) {
+            // 自己评论自己的动态同样记录（消息中心展示「发帖本人的评论」）
+            if (f.getAuthorId() != null) {
+                String content0 = f.getContent() == null ? "" : f.getContent();
                 notifyService.createNotification(f.getAuthorId(), openid, nick, avatar, "comment",
-                        feedId, null, (f.getContent() == null ? "" : f.getContent()).substring(0, Math.min(50, f.getContent() == null ? 0 : f.getContent().length())),
+                        feedId, null, content0.substring(0, Math.min(50, content0.length())),
                         content.trim().substring(0, Math.min(100, content.trim().length())), 0);
             }
         }

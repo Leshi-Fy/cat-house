@@ -20,10 +20,10 @@ public class NotifyController {
     }
 
     @GetMapping
-    public Result<Object> list(@RequestParam("openid") String openid,
-                              @RequestParam(value = "type", required = false) String type,
-                              @RequestParam(value = "page", defaultValue = "0") long page,
-                              @RequestParam(value = "pageSize", defaultValue = "20") long pageSize) {
+    public Result<Map<String, Object>> list(@RequestParam("openid") String openid,
+                                            @RequestParam(value = "type", required = false) String type,
+                                            @RequestParam(value = "page", defaultValue = "0") long page,
+                                            @RequestParam(value = "pageSize", defaultValue = "20") long pageSize) {
         return Result.ok(notifyService.list(openid, type, page, pageSize));
     }
 

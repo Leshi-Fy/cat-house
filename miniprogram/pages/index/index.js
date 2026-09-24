@@ -4,6 +4,7 @@
  */
 const { query, COLLECTIONS } = require('../../utils/database');
 const { getDistance, formatDistance, timeAgo } = require('../../utils/util');
+const api = require('../../utils/api');
 const app = getApp();
 
 // ─── 配置 ───
@@ -450,11 +451,8 @@ Page({
   async _loadUnreadCount() {
     if (!app.globalData.isLoggedIn) return;
     try {
-      const { result } = await wx.cloud.callFunction({
-        name: 'notify-operations',
-        data: { action: 'unreadCount' },
-      });
-      if (result && result.success) {
+      const { result } = await api.callFunction('notify-operations', { action: 'unreadCount' });
+      if (result && !result.error) {
         this.setData({ unreadCount: result.total || 0 });
         if (app.globalData) app.globalData.unreadCount = result.total || 0;
       }

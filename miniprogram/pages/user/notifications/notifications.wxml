@@ -1,10 +1,19 @@
 <!--
   消息中心：赞 / 评论 / 捐款 三个 Tab
+  每条通知关联社区里的动态或众筹，点击跳转到对应详情页
 -->
 <view class="page page-with-tabbar">
 
-  <!-- Tab 切换 -->
+  <!-- Tab 切换（默认「全部」，按时间倒序混合展示赞 / 评论 / 捐款） -->
   <view class="tabs">
+    <view
+      class="tab-item {{activeTab === 'all' ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-tab="all"
+    >
+      <text class="tab-text">全部</text>
+      <view class="tab-badge" wx:if="{{unread.total > 0}}">{{unread.total > 99 ? '99+' : unread.total}}</view>
+    </view>
     <view
       class="tab-item {{activeTab === 'like' ? 'active' : ''}}"
       bindtap="switchTab"
@@ -48,7 +57,8 @@
     <!-- 空状态 -->
     <view class="empty-wrap" wx:elif="{{!isLoading && items.length === 0}}">
       <text class="empty-icon">🔔</text>
-      <text class="empty-text">暂无{{activeTab === 'like' ? '点赞' : activeTab === 'comment' ? '评论' : '捐款'}}通知</text>
+      <text class="empty-text">{{emptyText}}</text>
+      <text class="empty-tip">别人点赞、评论你的动态或众筹后会出现在这里</text>
     </view>
 
     <!-- 通知列表 -->
@@ -74,37 +84,43 @@
         <!-- 内容 -->
         <view class="notify-body">
           <view class="notify-top">
-            <text class="sender-name">{{item.senderName}}</text>
+            <!-- 自己发出的互动不显示发送人（文案里已含「你」） -->
+            <text class="sender-name" wx:if="{{!item.isSelf}}">{{item.senderName}}</text>
+            <text class="notify-action {{item.isSelf ? 'self' : ''}}">{{item.actionText}}</text>
+            <text class="notify-tag" wx:if="{{item.targetType === 'crowd' && !item.isSelf}}">众筹</text>
             <text class="notify-time">{{item.formattedTime}}</text>
           </view>
 
-          <!-- 点赞 -->
-          <view wx:if="{{item.type === 'like'}}">
-            <text class="notify-action">赞了你的动态</text>
-            <view class="notify-quote" wx:if="{{item.feedContent}}">{{item.feedContent}}</view>
-          </view>
+          <!-- 捐款金额 -->
+          <view class="notify-donate-amount" wx:if="{{item.type === 'donate'}}">+¥{{item.amountDisplay}}</view>
 
-          <!-- 评论 -->
-          <view wx:elif="{{item.type === 'comment'}}">
-            <text class="notify-action">评论了你：</text>
-            <view class="notify-quote">{{item.commentContent || item.feedContent}}</view>
-          </view>
+          <!-- 评论正文 -->
+          <view class="notify-quote strong" wx:if="{{item.commentContent}}">{{item.commentContent}}</view>
 
-          <!-- 捐款 -->
-          <view wx:else>
-            <text class="notify-action">捐款了你发起的众筹</text>
-            <view class="notify-donate-amount">+¥{{item.amountDisplay}}</view>
-            <view class="notify-quote" wx:if="{{item.feedContent}}">{{item.feedContent}}</view>
+          <!-- 关联内容摘要（动态正文 / 众筹标题） -->
+          <view
+            class="notify-quote"
+            wx:if="{{item.targetTitle && item.targetTitle !== item.commentContent}}"
+          >{{item.targetTitle}}</view>
+
+          <!-- 目标已被删除 -->
+          <view class="notify-deleted" wx:if="{{!item.targetExists}}">
+            <text>内容已删除</text>
           </view>
+        </view>
+
+        <!-- 关联内容缩略图 -->
+        <view class="notify-thumb" wx:if="{{item.targetPhoto}}">
+          <image class="thumb-img" src="{{item.targetPhoto}}" mode="aspectFill" lazy-load />
         </view>
 
         <!-- 未读红点 -->
         <view class="unread-dot" wx:if="{{!item.isRead}}"></view>
       </view>
 
-      <!-- 加载更多 -->
+      <!-- 上滑到底自动加载更早的 10 条（也可点击手动触发） -->
       <view class="load-more" wx:if="{{hasMore}}">
-        <view class="load-more-btn" bindtap="loadMore" wx:if="{{!isLoading}}">加载更多</view>
+        <view class="load-more-btn" bindtap="loadMore" wx:if="{{!isLoading}}">上滑加载更多</view>
         <text class="loading-more-text" wx:else>加载中...</text>
       </view>
       <view class="no-more" wx:else>
