@@ -179,34 +179,43 @@ Page({
   },
 
   /**
-   * 点赞/取消点赞
+   * 点赞/取消点赞（动态 feed 与众筹 crowd 都支持）
    */
   async toggleLike(e) {
-    const { id } = e.currentTarget.dataset;
-    const item = this.data.items.find(i => i._id === id && i.type === 'feed');
+    const { id, type } = e.currentTarget.dataset;
+    const item = this.data.items.find(i => i._id === id);
     if (!item) return;
+
+    const isFeed = (type || item.type) === 'feed';
+    const action = item.isLiked ? 'unlike' : 'like';
 
     try {
       const { result } = await wx.cloud.callFunction({
-        name: 'feed-operations',
-        data: { action: item.isLiked ? 'unlike' : 'like', feedId: id },
+        name: isFeed ? 'feed-operations' : 'crowd-operations',
+        data: isFeed
+          ? { action, feedId: id }
+          : { action, crowdId: id },
       });
 
-      if (result.success) {
-        const items = this.data.items.map(i => {
-          if (i._id === id) {
-            return {
-              ...i,
-              isLiked: !i.isLiked,
-              likeCount: (i.likeCount || 0) + (i.isLiked ? -1 : 1),
-            };
-          }
-          return i;
-        });
-        this.setData({ items });
-      }
+      if (result && result.error) throw new Error(result.error);
+
+      const items = this.data.items.map(i => {
+        if (i._id === id) {
+          return {
+            ...i,
+            isLiked: !i.isLiked,
+            likeCount: (i.likeCount || 0) + (i.isLiked ? -1 : 1),
+          };
+        }
+        return i;
+      });
+      this.setData({ items });
     } catch (err) {
       console.error('点赞失败:', err);
+      wx.showToast({
+        title: (err && err.message) || '点赞失败，请重试',
+        icon: 'none',
+      });
     }
   },
 });

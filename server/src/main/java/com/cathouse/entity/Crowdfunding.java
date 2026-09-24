@@ -32,6 +32,8 @@ public class Crowdfunding {
     private String receiptStatus;    // none | pending | approved | rejected
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<Map<String, Object>> receiptRecords;
+    private Integer likeCount;
+    private Integer commentCount;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

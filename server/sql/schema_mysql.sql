@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS crowdfundings (
   photos          LONGTEXT,
   receipt_status  VARCHAR(32) DEFAULT 'none',
   receipt_records LONGTEXT,
+  like_count      INT DEFAULT 0,
+  comment_count   INT DEFAULT 0,
   create_time     DATETIME DEFAULT CURRENT_TIMESTAMP,
   update_time     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -167,6 +169,36 @@ CREATE TABLE IF NOT EXISTS feed_comments (
 );
 CREATE INDEX idx_comments_feed ON feed_comments(feed_id);
 CREATE INDEX idx_comments_parent ON feed_comments(parent_id);
+
+-- 众筹点赞记录（唯一约束防止重复点赞）
+CREATE TABLE IF NOT EXISTS crowd_likes (
+  id          VARCHAR(36) PRIMARY KEY,
+  crowd_id    VARCHAR(36),
+  user_id     VARCHAR(64),
+  create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_crowd_user (crowd_id, user_id)
+);
+CREATE INDEX idx_crowd_likes_crowd ON crowd_likes(crowd_id);
+CREATE INDEX idx_crowd_likes_user ON crowd_likes(user_id);
+
+-- 众筹评论（parent_id 为 null 表示一级评论）
+CREATE TABLE IF NOT EXISTS crowd_comments (
+  id            VARCHAR(36) PRIMARY KEY,
+  crowd_id      VARCHAR(36),
+  content       TEXT,
+  author_id     VARCHAR(64),
+  author_name   VARCHAR(128),
+  author_avatar VARCHAR(512),
+  parent_id     VARCHAR(36),
+  like_count    INT DEFAULT 0,
+  create_time   DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_crowd_comments_crowd ON crowd_comments(crowd_id);
+CREATE INDEX idx_crowd_comments_parent ON crowd_comments(parent_id);
+
+-- 已有库升级（老库没有 like_count / comment_count 时执行）
+-- ALTER TABLE crowdfundings ADD COLUMN like_count INT DEFAULT 0;
+-- ALTER TABLE crowdfundings ADD COLUMN comment_count INT DEFAULT 0;
 
 -- 消息通知
 CREATE TABLE IF NOT EXISTS notifications (

@@ -98,8 +98,9 @@ Page({
    * 聚焦输入框
    */
   onCommentFocus() {
-    // 确保已登录
-    if (!app.globalData.userInfo) {
+    // 确保已登录：后端评论只要求 openid，按 openid 判断（userInfo 缓存缺失不应拦截）
+    const openid = (app.globalData && app.globalData.openid) || wx.getStorageSync('openid');
+    if (!openid) {
       wx.showModal({
         title: '需要登录',
         content: '评论需要先登录',

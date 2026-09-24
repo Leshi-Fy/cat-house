@@ -43,6 +43,17 @@
           </view>
         </view>
 
+        <view class="feed-actions crowd-actions">
+          <view class="action-btn {{item.isLiked ? 'active' : ''}}" catchtap="toggleLike" data-id="{{item._id}}" data-type="crowd">
+            <text class="action-icon">♥</text>
+            <text class="action-count">{{item.likeCount || 0}}</text>
+          </view>
+          <view class="action-btn" catchtap="goToCrowdDetail" data-id="{{item._id}}">
+            <text class="action-icon">💬</text>
+            <text class="action-count">{{item.commentCount || 0}}</text>
+          </view>
+        </view>
+
         <view class="crowd-donate-btn" catchtap="goToCrowdDetail" data-id="{{item._id}}">
           <text>爱心捐款</text>
         </view>
@@ -87,7 +98,7 @@
         </view>
 
         <view class="feed-actions">
-          <view class="action-btn {{item.isLiked ? 'active' : ''}}" catchtap="toggleLike" data-id="{{item._id}}">
+          <view class="action-btn {{item.isLiked ? 'active' : ''}}" catchtap="toggleLike" data-id="{{item._id}}" data-type="feed">
             <text class="action-icon">♥</text>
             <text class="action-count">{{item.likeCount || 0}}</text>
           </view>

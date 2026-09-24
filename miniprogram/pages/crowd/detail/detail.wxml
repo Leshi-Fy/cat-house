@@ -36,6 +36,18 @@
       <text class="desc-text">{{crowd.description || '暂无详细描述'}}</text>
     </view>
 
+    <!-- 互动：点赞 / 评论 -->
+    <view class="interact-card card">
+      <view class="interact-btn {{crowd.isLiked ? 'active' : ''}}" bindtap="toggleLike">
+        <text class="interact-icon">♥</text>
+        <text class="interact-count">{{crowd.likeCount || 0}}</text>
+      </view>
+      <view class="interact-btn" bindtap="onFocusComment">
+        <text class="interact-icon">💬</text>
+        <text class="interact-count">{{crowd.commentCount || 0}}</text>
+      </view>
+    </view>
+
     <!-- 发起人信息 -->
     <view class="info-card card">
       <view class="info-row">
@@ -87,6 +99,73 @@
       </view>
       <view class="empty-tip" wx:if="{{receipts.length === 0}}">
         <text class="empty-tip-text">暂无报销记录</text>
+      </view>
+    </view>
+
+    <!-- 评论 -->
+    <view class="comments-card card">
+      <view class="card-title">💬 评论（{{comments.length}}）</view>
+
+      <view class="comment-input-row">
+        <input
+          class="comment-input"
+          value="{{commentText}}"
+          placeholder="{{placeholder}}"
+          placeholder-class="comment-placeholder"
+          bindinput="onCommentInput"
+          confirm-type="send"
+          bindconfirm="submitComment"
+        />
+        <view class="comment-send {{hasContent ? 'active' : ''}}" catchtap="submitComment">发送</view>
+      </view>
+      <view class="reply-bar" wx:if="{{replyTo}}">
+        <text class="reply-bar-text">回复 {{replyTo.authorName}}</text>
+        <text class="reply-cancel" catchtap="cancelReply">取消</text>
+      </view>
+
+      <view class="comment-list" wx:if="{{comments.length > 0}}">
+        <view wx:for="{{comments}}" wx:key="_id" class="comment-group">
+          <view class="comment-item">
+            <image class="comment-avatar" src="{{item.authorAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+            <view class="comment-body">
+              <view class="comment-header">
+                <text class="comment-name">{{item.authorName}}</text>
+                <text class="comment-time">{{item.formattedTime}}</text>
+              </view>
+              <text class="comment-text">{{item.content}}</text>
+              <view class="comment-actions">
+                <text class="reply-btn" bindtap="onReplyTo" data-id="{{item._id}}" data-name="{{item.authorName}}">回复</text>
+                <text class="delete-btn" wx:if="{{item.isAuthor}}" bindtap="onDeleteComment" data-id="{{item._id}}">删除</text>
+              </view>
+
+              <view wx:if="{{item.replies.length > 0}}" class="replies">
+                <view wx:for="{{item.replies}}" wx:for-item="reply" wx:key="_id" class="reply-item">
+                  <image class="reply-avatar" src="{{reply.authorAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+                  <view class="reply-body">
+                    <text class="reply-name">{{reply.authorName}}</text>
+                    <text class="reply-text">{{reply.content}}</text>
+                    <view class="reply-meta">
+                      <text class="reply-time">{{reply.formattedTime}}</text>
+                      <text class="reply-btn" bindtap="onReplyTo" data-id="{{item._id}}" data-name="{{reply.authorName}}">回复</text>
+                    </view>
+                  </view>
+                </view>
+                <view
+                  wx:if="{{item.replyCount > 2 && !showAllReplies[item._id]}}"
+                  class="more-replies"
+                  bindtap="onViewAllReplies"
+                  data-id="{{item._id}}"
+                >
+                  <text class="more-replies-text">展开全部 {{item.replyCount}} 条回复 ›</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="empty-tip" wx:else>
+        <text class="empty-tip-text">还没有评论，来说两句吧</text>
       </view>
     </view>
 

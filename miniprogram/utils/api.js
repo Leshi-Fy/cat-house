@@ -119,6 +119,13 @@ function buildRequest(name, data) {
       switch (d.action) {
         case 'create': return { method: 'POST', path: '/api/crowdfundings', body: { crowdData: d.crowdData } };
         case 'list': return { method: 'GET', path: '/api/crowdfundings', query: { status: d.status, page: d.page, pageSize: d.pageSize } };
+        case 'detail': return { method: 'GET', path: '/api/crowdfundings/' + d.crowdId, query: { openid: d.openid } };
+        case 'like': return { method: 'POST', path: '/api/crowdfundings/' + d.crowdId + '/like' };
+        case 'unlike': return { method: 'DELETE', path: '/api/crowdfundings/' + d.crowdId + '/like' };
+        case 'addComment': return { method: 'POST', path: '/api/crowdfundings/' + d.crowdId + '/comments', body: { content: d.content, parentId: d.parentId } };
+        case 'listComments': return { method: 'GET', path: '/api/crowdfundings/' + d.crowdId + '/comments', query: { page: d.page, pageSize: d.pageSize } };
+        case 'listReplies': return { method: 'GET', path: '/api/crowdfundings/comments/' + d.commentId + '/replies' };
+        case 'deleteComment': return { method: 'DELETE', path: '/api/crowdfundings/comments/' + d.commentId };
         case 'apply_receipt': return { method: 'POST', path: '/api/crowdfundings/' + d.crowdId + '/receipts', body: { amount: d.amount, remark: d.remark, receipts: d.receipts } };
         case 'approve_receipt': return { method: 'POST', path: '/api/crowdfundings/' + d.crowdId + '/receipts/approve', body: { approved: d.approved } };
         case 'complete_crowd': return { method: 'POST', path: '/api/crowdfundings/' + d.crowdId + '/complete', body: {} };
@@ -134,7 +141,8 @@ function buildRequest(name, data) {
 
     case 'notify-operations':
       switch (d.action) {
-        case 'list': return { method: 'GET', path: '/api/notifications', query: { type: d.type, page: d.page, pageSize: d.pageSize } };
+        // type 为 all/空 时不带 type 参数，后端即返回全部类型（赞 / 评论 / 捐款 混合，按时间倒序）
+        case 'list': return { method: 'GET', path: '/api/notifications', query: { type: d.type && d.type !== 'all' ? d.type : null, page: d.page, pageSize: d.pageSize } };
         case 'unreadCount': return { method: 'GET', path: '/api/notifications/unread-count' };
         case 'markRead': return { method: 'POST', path: '/api/notifications/read', body: { ids: d.ids } };
         case 'markAllRead': return { method: 'POST', path: '/api/notifications/read-all', body: { type: d.type } };
@@ -171,7 +179,13 @@ function callFunction(name, data = {}) {
     let query = req.query || {};
     if (req.method === 'POST' || req.method === 'PUT') {
       body = Object.assign({}, body);
-      if (openid && body.openid === undefined) body.openid = openid;
+      query = Object.assign({}, query);
+      if (openid) {
+        if (body.openid === undefined) body.openid = openid;
+        // 后端部分接口用 @RequestParam("openid") 从 query 取值（如点赞/取消点赞），
+        // 只放 body 会报 Required request parameter 'openid' is not present，故两处都带。
+        if (query.openid === undefined) query.openid = openid;
+      }
     } else {
       query = Object.assign({}, query);
       if (openid && query.openid === undefined) query.openid = openid;
