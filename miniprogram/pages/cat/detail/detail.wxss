@@ -32,32 +32,51 @@
 
 /* 信息卡片 */
 .info-card {
-  margin-top: -40rpx;
+  margin-top: -48rpx;
   position: relative;
   z-index: 10;
+  border-radius: var(--radius-lg);
+  padding: 32rpx 28rpx 24rpx;
+  box-shadow: var(--shadow-elevated);
 }
 
 .name-row {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 18rpx;
 }
 
 .cat-name {
-  font-size: 44rpx;
+  font-size: 46rpx;
   font-weight: 700;
+  letter-spacing: 1rpx;
+  line-height: 1.2;
 }
 
+/* 性别徽章：只在已知性别时渲染（未知不显示） */
 .gender-badge {
-  font-size: 24rpx;
+  display: inline-flex;
+  align-items: center;
+  font-size: 22rpx;
+  font-weight: 500;
   padding: 6rpx 16rpx;
-  border-radius: 16rpx;
-  background: var(--color-bg);
+  border-radius: 999rpx;
+  line-height: 1.3;
+  background: rgba(120, 130, 150, 0.1);
+  color: var(--color-text-secondary);
+  transform: translateY(2rpx);
 }
 
-.gender-badge.male { color: #5B9BD5; }
-.gender-badge.female { color: #FF85A2; }
+.gender-badge.male {
+  background: rgba(91, 155, 213, 0.14);
+  color: #3E7BB6;
+}
+
+.gender-badge.female {
+  background: rgba(255, 133, 162, 0.16);
+  color: #E5698D;
+}
 
 .aliases {
   margin-bottom: 12rpx;
@@ -75,27 +94,58 @@
   margin-bottom: 20rpx;
 }
 
+.tag-neutral {
+  background: rgba(120, 130, 150, 0.1);
+  color: #6B7280;
+}
+
+.tag-age {
+  background: rgba(255, 140, 66, 0.12);
+  color: var(--color-primary);
+}
+
+/* 描述：左侧竖条引用样式 */
 .desc {
-  margin-bottom: 8rpx;
+  display: flex;
+  align-items: stretch;
+  gap: 16rpx;
+  margin-bottom: 4rpx;
+}
+
+.desc-bar {
+  width: 6rpx;
+  border-radius: 3rpx;
+  background: linear-gradient(180deg, var(--color-primary), rgba(255, 176, 122, 0.35));
+  flex-shrink: 0;
 }
 
 .desc-text {
+  flex: 1;
   font-size: 28rpx;
-  line-height: 1.8;
+  line-height: 1.7;
   color: var(--color-text-secondary);
 }
 
-/* 元信息网格 */
+/* 元信息网格：值在上、标签在下，列间 1rpx 分隔线 */
 .meta-grid {
   display: flex;
-  justify-content: space-around;
+  align-items: center;
 }
 
 .meta-cell {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
+  gap: 6rpx;
+  min-width: 0;
+}
+
+.meta-divider {
+  width: 1rpx;
+  height: 44rpx;
+  background: var(--color-border);
+  flex-shrink: 0;
 }
 
 .meta-label {
@@ -104,16 +154,24 @@
 }
 
 .meta-value {
-  font-size: 26rpx;
+  font-size: 30rpx;
   color: var(--color-text);
-  font-weight: 500;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-value-hl {
+  color: var(--color-primary);
 }
 
 /* 地图卡片 */
 .card-title {
   font-size: 30rpx;
   font-weight: 600;
-  margin-bottom: 20rpx;
+  margin-bottom: 22rpx;
 }
 
 .location-map {
@@ -125,7 +183,19 @@
 
 .location-btn {
   width: 100% !important;
+  height: 80rpx;
+  line-height: 80rpx;
+  padding: 0 !important;
   font-size: 28rpx !important;
+  font-weight: 600;
+  background: rgba(255, 140, 66, 0.1);
+  border: none;
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+}
+
+.location-btn:active {
+  opacity: 0.75;
 }
 
 /* 合并记录 */
@@ -155,12 +225,33 @@
 .bottom-actions {
   display: flex;
   gap: 20rpx;
-  padding-top: 24rpx;
+  padding: 8rpx 0 0;
 }
 
 .merge-btn, .crowd-btn, .edit-btn {
   flex: 1;
-  font-size: 28rpx !important;
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0;
+  font-size: 29rpx !important;
+  border-radius: 999rpx;
+}
+
+/* 次要操作：浅描边样式，让「发起众筹」成为唯一视觉重心 */
+.merge-btn, .edit-btn {
+  background: var(--color-white);
+  border: 2rpx solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  box-shadow: var(--shadow-card);
+}
+
+.merge-btn:active, .edit-btn:active {
+  opacity: 0.7;
+}
+
+.crowd-btn {
+  font-weight: 600;
 }
 
 /* 加载中 */
@@ -327,6 +418,17 @@
 
 .edit-form-item {
   margin-bottom: 28rpx;
+}
+
+/* 弹窗里的两列布局 */
+.edit-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.edit-half {
+  flex: 1;
+  min-width: 0;
 }
 
 .edit-label {

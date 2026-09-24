@@ -187,24 +187,8 @@ function generateId() {
  * @returns {string} 友好文案，如 "约2岁3个月"，无数据时返回 ''
  */
 function calcCatAge(ageAtCreate, createTime, isDeceased) {
-  // ageAtCreate 未填（undefined/null/''）时直接返回空
-  if (ageAtCreate === undefined || ageAtCreate === null || ageAtCreate === '') return '';
-
-  const baseMonths = Number(ageAtCreate);
-  if (isNaN(baseMonths) || baseMonths < 0) return '';
-
-  let totalMonths = baseMonths;
-
-  if (!isDeceased && createTime) {
-    const ct = new Date(createTime);
-    if (!isNaN(ct.getTime())) {
-      const now = new Date();
-      const elapsedMonths = Math.floor((now - ct) / (1000 * 60 * 60 * 24 * 30.5));
-      if (elapsedMonths > 0) totalMonths += elapsedMonths;
-    }
-  }
-
-  totalMonths = Math.round(totalMonths);
+  const totalMonths = currentAgeMonths(ageAtCreate, createTime, isDeceased);
+  if (totalMonths === null) return '';
 
   if (totalMonths < 1) return '不足1个月';
   if (totalMonths < 12) return `约${totalMonths}个月`;
@@ -212,6 +196,43 @@ function calcCatAge(ageAtCreate, createTime, isDeceased) {
   const rem = totalMonths % 12;
   if (rem === 0) return `约${years}岁`;
   return `约${years}岁${rem}个月`;
+}
+
+/**
+ * 建档至今经过的整月数（与 calcCatAge 同一口径：30.5 天 / 月）
+ * 时间非法或未来时间时返回 0
+ */
+function elapsedMonths(createTime) {
+  if (!createTime) return 0;
+  const ct = new Date(createTime);
+  if (isNaN(ct.getTime())) return 0;
+  const m = Math.floor((Date.now() - ct.getTime()) / (1000 * 60 * 60 * 24 * 30.5));
+  return m > 0 ? m : 0;
+}
+
+/**
+ * 猫「当前」的实时年龄（月数，取整）。
+ * = ageAtCreate（建档时登记的月数）+ 建档至今经过的月数
+ * 已去世的猫不叠加时间。无数据（未填 / 非法）时返回 null。
+ */
+function currentAgeMonths(ageAtCreate, createTime, isDeceased) {
+  if (ageAtCreate === undefined || ageAtCreate === null || ageAtCreate === '') return null;
+  const baseMonths = Number(ageAtCreate);
+  if (isNaN(baseMonths) || baseMonths < 0) return null;
+  if (isDeceased) return Math.round(baseMonths);
+  return Math.round(baseMonths + elapsedMonths(createTime));
+}
+
+/** 月数 → 年龄文本（不带「约」，用于输入框反显）：24 → "2岁"、14 → "1岁2个月" */
+function monthsToAgeText(months) {
+  const m = Number(months);
+  if (isNaN(m) || m < 0) return '';
+  const total = Math.round(m);
+  if (total < 1) return '';
+  if (total < 12) return `${total}个月`;
+  const years = Math.floor(total / 12);
+  const rem = total % 12;
+  return rem === 0 ? `${years}岁` : `${years}岁${rem}个月`;
 }
 
 /**
@@ -269,4 +290,7 @@ module.exports = {
   generateId,
   calcCatAge,
   parseAgeToMonths,
+  currentAgeMonths,
+  elapsedMonths,
+  monthsToAgeText,
 };

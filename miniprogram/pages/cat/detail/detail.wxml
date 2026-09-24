@@ -28,11 +28,10 @@
   <view class="container" wx:if="{{cat && !loading}}">
     <!-- 名字 & 基本信息 -->
     <view class="info-card card">
+      <!-- 名字 + 性别徽章（性别未知时不显示，避免「未知」噪音） -->
       <view class="name-row">
         <text class="cat-name">{{cat.name}}</text>
-        <text class="gender-badge {{cat.gender === 'male' ? 'male' : cat.gender === 'female' ? 'female' : ''}}">
-          {{cat.genderText}}
-        </text>
+        <text class="gender-badge {{cat.gender}}" wx:if="{{cat.genderBadge}}">{{cat.genderBadge}}</text>
       </view>
 
       <!-- 别名（如有合并） -->
@@ -40,57 +39,29 @@
         <text class="alias-text">又名：{{cat.aliases.join(' / ')}}</text>
       </view>
 
-      <!-- 状态标签 -->
-      <view class="tag-row">
-        <text class="tag {{cat.healthStatus === 'good' ? 'tag-success' : cat.healthStatus === 'injured' ? 'tag-danger' : 'tag-warning'}}">
-          {{cat.healthText}}
-        </text>
-        <text class="tag {{cat.sterilized === 'yes' ? 'tag-success' : 'tag-primary'}}">
-          {{cat.sterilizedText}}
-        </text>
-        <text class="tag tag-primary" wx:if="{{cat.ageDisplay}}">{{cat.ageDisplay}}</text>
+      <!-- 状态标签：只渲染已知信息 -->
+      <view class="tag-row" wx:if="{{cat.tags && cat.tags.length > 0}}">
+        <text class="tag {{item.cls}}" wx:for="{{cat.tags}}" wx:key="text">{{item.text}}</text>
       </view>
 
-      <!-- 描述 -->
+      <!-- 外貌/描述 -->
       <view class="desc" wx:if="{{cat.description}}">
+        <view class="desc-bar"></view>
         <text class="desc-text">{{cat.description}}</text>
       </view>
 
-      <view class="divider"></view>
+      <view class="divider" wx:if="{{cat.metaItems && cat.metaItems.length > 0}}"></view>
 
-    <!-- 元信息 -->
-    <view class="meta-grid">
-      <!-- 流浪猫专属字段 -->
-      <block wx:if="{{catType === 'stray'}}">
-        <view class="meta-cell">
-          <text class="meta-label">最后目击</text>
-          <text class="meta-value">{{cat.lastSeenText || '未知'}}</text>
-        </view>
-        <view class="meta-cell">
-          <text class="meta-label">创建者</text>
-          <text class="meta-value">{{cat.creatorName || '匿名'}}</text>
-        </view>
-        <view class="meta-cell" wx:if="{{cat.areaRadius}}">
-          <text class="meta-label">活动范围</text>
-          <text class="meta-value">{{cat.areaRadius}}m</text>
-        </view>
-      </block>
-      <!-- 家养猫专属字段 -->
-      <block wx:if="{{catType === 'home'}}">
-        <view class="meta-cell" wx:if="{{cat.breed}}">
-          <text class="meta-label">品种</text>
-          <text class="meta-value">{{cat.breed}}</text>
-        </view>
-        <view class="meta-cell" wx:if="{{cat.personality}}">
-          <text class="meta-label">性格</text>
-          <text class="meta-value">{{cat.personality}}</text>
-        </view>
-        <view class="meta-cell" wx:if="{{cat.birthday}}">
-          <text class="meta-label">生日</text>
-          <text class="meta-value">{{cat.birthday}}</text>
-        </view>
-      </block>
-    </view>
+      <!-- 元信息：值在上、标签在下，列间加分隔线 -->
+      <view class="meta-grid" wx:if="{{cat.metaItems && cat.metaItems.length > 0}}">
+        <block wx:for="{{cat.metaItems}}" wx:key="label">
+          <view class="meta-divider" wx:if="{{index > 0}}"></view>
+          <view class="meta-cell">
+            <text class="meta-value {{item.highlight ? 'meta-value-hl' : ''}}">{{item.value}}</text>
+            <text class="meta-label">{{item.label}}</text>
+          </view>
+        </block>
+      </view>
     </view>
 
     <!-- 活动区域地图（仅流浪猫） -->
@@ -106,7 +77,7 @@
         show-location
       />
       <button class="btn-outline location-btn" bindtap="onOpenLocation">
-        导航到这里
+        🧭 导航到这里
       </button>
     </view>
 
@@ -160,7 +131,7 @@
 
   <!-- 合并弹窗 -->
   <view class="modal-mask" wx:if="{{showMergeModal}}" bindtap="onCancelMerge">
-    <view class="modal-content" catchtap="">
+    <view class="modal-content" catchtap="noop">
       <view class="modal-title">申请合并猫咪档案</view>
       <view class="modal-desc">
         你认为「{{cat.name}}」和你创建的某只流浪猫是同一只猫，申请合并后由对方审核。审核通过后，两个档案将合为一个。
@@ -179,27 +150,36 @@
   </view>
 
   <!-- 手动更新数据弹窗 -->
-  <view class="modal-mask" wx:if="{{showEditModal}}" bindtap="onCloseEdit">
-    <view class="modal-content edit-modal-content" catchtap="">
+  <view class="modal-mask" wx:if="{{showEditModal}}" bindtap="onMaskTapEdit">
+    <view class="modal-content edit-modal-content" catchtap="noop">
       <view class="modal-title">更新猫咪信息</view>
 
-      <view class="edit-form-item">
-        <text class="edit-label">大概年龄</text>
-        <input class="edit-input" placeholder="如：1岁、6个月、2岁3个月" value="{{editForm.ageText}}" bindinput="onEditAgeInput" />
+      <view class="edit-row">
+        <view class="edit-form-item edit-half" catchtap="onPickerTap">
+          <text class="edit-label">性别</text>
+          <picker mode="selector" range="{{genderLabels}}" value="{{genderIndex}}" bindchange="onEditGenderChange">
+            <view class="edit-picker">{{genderLabels[genderIndex]}} ▾</view>
+          </picker>
+        </view>
+        <view class="edit-form-item edit-half">
+          <text class="edit-label">当前年龄</text>
+          <input class="edit-input" placeholder="如：1岁6个月" value="{{editForm.ageText}}" bindinput="onEditAgeInput" />
+        </view>
       </view>
 
-      <view class="edit-form-item">
-        <text class="edit-label">健康状况</text>
-        <picker mode="selector" range="{{healthLabels}}" value="{{healthIndex}}" bindchange="onEditHealthChange">
-          <view class="edit-picker">{{healthLabels[healthIndex]}} ▾</view>
-        </picker>
-      </view>
-
-      <view class="edit-form-item">
-        <text class="edit-label">当前状态</text>
-        <picker mode="selector" range="{{statusLabels}}" value="{{statusIndex}}" bindchange="onEditStatusChange">
-          <view class="edit-picker">{{statusLabels[statusIndex]}} ▾</view>
-        </picker>
+      <view class="edit-row">
+        <view class="edit-form-item edit-half" catchtap="onPickerTap">
+          <text class="edit-label">健康状况</text>
+          <picker mode="selector" range="{{healthLabels}}" value="{{healthIndex}}" bindchange="onEditHealthChange">
+            <view class="edit-picker">{{healthLabels[healthIndex]}} ▾</view>
+          </picker>
+        </view>
+        <view class="edit-form-item edit-half" catchtap="onPickerTap">
+          <text class="edit-label">当前状态</text>
+          <picker mode="selector" range="{{statusLabels}}" value="{{statusIndex}}" bindchange="onEditStatusChange">
+            <view class="edit-picker">{{statusLabels[statusIndex]}} ▾</view>
+          </picker>
+        </view>
       </view>
 
       <view class="edit-form-item">

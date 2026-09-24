@@ -2,7 +2,10 @@
  * 流浪猫详情页
  */
 const { query, COLLECTIONS, db } = require('../../../utils/database');
-const { timeAgo, formatMoney, calcCatAge, parseAgeToMonths } = require('../../../utils/util');
+const {
+  timeAgo, formatMoney, calcCatAge, parseAgeToMonths,
+  currentAgeMonths, elapsedMonths, monthsToAgeText,
+} = require('../../../utils/util');
 const CONFIG = require('../../../utils/config');
 const app = getApp();
 
@@ -45,6 +48,9 @@ Page({
     statusOptions: ['active', 'adopted', 'deceased'],
     statusLabels: ['活跃', '已领养', '已去世'],
     statusIndex: 0,
+    genderOptions: ['unknown', 'male', 'female'],
+    genderLabels: ['未知', '公', '母'],
+    genderIndex: 0,
     isSubmittingEdit: false,
   },
 
@@ -84,14 +90,74 @@ Page({
         }
 
         cat.lastSeenText = timeAgo(cat.lastSeenTime);
-        cat.healthText = CONFIG.HEALTH_TEXT[cat.healthStatus] || cat.healthStatus;
-        cat.sterilizedText = CONFIG.STERILIZED_TEXT[cat.sterilized] || cat.sterilized;
-        cat.genderText = CONFIG.GENDER_TEXT[cat.gender] || cat.gender;
+
+        // ── 名字右侧的性别徽章 ──
+        // 只显示"已知"性别；未知时不再渲染一个「未知」徽章当噪音。
+        // 想补全性别可在「更新信息」弹窗里设置。
+        const GENDER_BADGE = { male: '♂ 公', female: '♀ 母' };
+        cat.genderBadge = GENDER_BADGE[cat.gender] || '';
+
+        // ── 状态标签 ──
+        // 原则：只展示"已知/有意义"的信息，未知项直接不渲染（避免「未知」刷屏）
+        const HEALTH_TAG_CLASS = {
+          good: 'tag-success',
+          fair: 'tag-warning',
+          poor: 'tag-warning',
+          injured: 'tag-danger',
+          sick: 'tag-danger',
+          deceased: 'tag-neutral',
+        };
+
+        const tags = [];
+        const tagTexts = new Set();
+        // 去重：healthStatus 与 status 都可能表达「已去世」，避免出现两个一样的标签
+        const pushTag = (text, cls) => {
+          if (!text || tagTexts.has(text)) return;
+          tagTexts.add(text);
+          tags.push({ text, cls });
+        };
+
+        if (cat.healthStatus && CONFIG.HEALTH_TEXT[cat.healthStatus]) {
+          pushTag(
+            CONFIG.HEALTH_TEXT[cat.healthStatus],
+            HEALTH_TAG_CLASS[cat.healthStatus] || 'tag-neutral'
+          );
+        }
+        if (cat.sterilized === 'yes' || cat.sterilized === 'no') {
+          pushTag(CONFIG.STERILIZED_TEXT[cat.sterilized], 'tag-neutral');
+        }
+        if (cat.status === 'adopted' || cat.status === 'deceased') {
+          pushTag(
+            cat.status === 'adopted' ? '已领养' : '已去世',
+            cat.status === 'adopted' ? 'tag-success' : 'tag-neutral'
+          );
+        }
 
         // 实时计算年龄：ageAtCreate（月数）+ 档案创建至今经过的月数
         // 已去世的猫不叠加时间
         const isDeceased = cat.status === 'deceased';
         cat.ageDisplay = calcCatAge(cat.ageAtCreate, cat.createTime, isDeceased);
+        pushTag(cat.ageDisplay, 'tag-age');
+        cat.tags = tags;
+
+        // ── 元信息（值在上、标签在下，页面统一渲染成带分隔线的三列） ──
+        const metaItems = [];
+        if (this.data.catType === 'stray') {
+          metaItems.push({
+            label: '最后目击',
+            value: cat.lastSeenText || '尚未记录',
+            highlight: true,
+          });
+          metaItems.push({ label: '创建者', value: cat.creatorName || '匿名' });
+          if (cat.areaRadius) {
+            metaItems.push({ label: '活动范围', value: `${cat.areaRadius}m` });
+          }
+        } else {
+          if (cat.breed) metaItems.push({ label: '品种', value: cat.breed });
+          if (cat.personality) metaItems.push({ label: '性格', value: cat.personality });
+          if (cat.birthday) metaItems.push({ label: '生日', value: cat.birthday });
+        }
+        cat.metaItems = metaItems;
 
         // 生成地图 markers
         let markers = [];
@@ -292,29 +358,24 @@ Page({
 
   /** 打开编辑弹窗 */
   onOpenEdit() {
-    const { cat, healthOptions, statusOptions } = this.data;
+    const { cat, healthOptions, statusOptions, genderOptions } = this.data;
     const healthIndex = healthOptions.indexOf(cat.healthStatus || 'good');
     const statusIndex = statusOptions.indexOf(cat.status || 'active');
+    const genderIndex = genderOptions.indexOf(cat.gender || 'unknown');
+    // 反显「当前实际年龄」而不是建档时的值：
+    // 猫的年龄会随时间自动增长，用户在这里看到的必须是现在的岁数，
+    // 保存时再反算回 ageAtCreate（见 onSubmitEdit），否则会被重复累加。
+    const isDeceased = cat.status === 'deceased';
+    const currentMonths = currentAgeMonths(cat.ageAtCreate, cat.createTime, isDeceased);
+    const ageText = currentMonths === null ? '' : monthsToAgeText(currentMonths);
 
-    // 将 ageAtCreate（月数）反显为文字，方便用户知道当前值
-    let ageText = '';
-    if (cat.ageAtCreate !== undefined && cat.ageAtCreate !== null && cat.ageAtCreate !== '') {
-      const m = Number(cat.ageAtCreate);
-      if (!isNaN(m) && m >= 0) {
-        if (m < 12) {
-          ageText = m < 1 ? '' : `${m}个月`;
-        } else {
-          const yr = Math.floor(m / 12);
-          const mo = m % 12;
-          ageText = mo === 0 ? `${yr}岁` : `${yr}岁${mo}个月`;
-        }
-      }
-    }
+    this._pickerTapAt = 0;   // 打开弹窗时清除 picker 透传保护标记
 
     this.setData({
       showEditModal: true,
       editForm: {
         ageText,
+        gender: cat.gender || 'unknown',
         healthStatus: cat.healthStatus || 'good',
         description: cat.description || '',
         lastSeenNote: '',
@@ -322,9 +383,36 @@ Page({
       },
       healthIndex: healthIndex >= 0 ? healthIndex : 0,
       statusIndex: statusIndex >= 0 ? statusIndex : 0,
+      genderIndex: genderIndex >= 0 ? genderIndex : 0,
     });
   },
 
+  /** 占位：拦截事件冒泡，避免点击弹窗内容时冒泡到遮罩把弹窗关掉 */
+  noop() {},
+
+  /**
+   * picker 被点时记一下时间戳。
+   * 微信原生 picker 弹层收起时，偶尔会把「选中选项」这一次点击透传到下层（遮罩），
+   * 触发遮罩的关闭逻辑 → 表现为「选完性别，整个更新信息弹窗没了」。
+   */
+  onPickerTap() {
+    this._pickerTapAt = Date.now();
+  },
+
+  /**
+   * 点击遮罩关闭：带 picker 透传保护。
+   * 微信原生 picker 弹层收起时，偶尔会把「选中选项」这一次点击透传到下层（遮罩），
+   * 触发这里的关闭逻辑 → 表现为「选完性别，整个更新信息弹窗没了」。
+   */
+  onMaskTapEdit() {
+    if (this._pickerTapAt && Date.now() - this._pickerTapAt < 1000) {
+      console.log('[detail] 忽略 picker 收起时的透传点击');
+      return;
+    }
+    this.setData({ showEditModal: false });
+  },
+
+  /** 取消按钮 / 其他显式操作：无条件关闭 */
   onCloseEdit() {
     this.setData({ showEditModal: false });
   },
@@ -339,6 +427,14 @@ Page({
 
   onEditLastSeenInput(e) {
     this.setData({ 'editForm.lastSeenNote': e.detail.value });
+  },
+
+  onEditGenderChange(e) {
+    const idx = +e.detail.value;
+    this.setData({
+      genderIndex: idx,
+      'editForm.gender': this.data.genderOptions[idx],
+    });
   },
 
   onEditHealthChange(e) {
@@ -359,13 +455,22 @@ Page({
 
   /** 提交手动更新 */
   async onSubmitEdit() {
-    const { catId, editForm, isSubmittingEdit } = this.data;
+    const { catId, cat, editForm, isSubmittingEdit } = this.data;
     if (isSubmittingEdit) return;
     this.setData({ isSubmittingEdit: true });
 
     try {
+      // 年龄：输入框里填的是「当前实际年龄」，需反算回建档时月数再存。
+      // 展示值 = ageAtCreate + 建档至今月数，若直接把当前年龄存进 ageAtCreate，
+      // 已过去的月数会被算第二遍（例：建档1年后把 1岁 改成 2岁，会显示成 3岁）。
+      const inputMonths = parseAgeToMonths(editForm.ageText);   // null = 未填 / 清空
+      // 已在编辑弹窗里标记为去世的猫不叠加时间，也就不需要扣减
+      const stillDeceased = editForm.status === 'deceased';
+      const elapsed = stillDeceased ? 0 : elapsedMonths(cat && cat.createTime);
+
       const updateData = {
-        ageAtCreate: parseAgeToMonths(editForm.ageText),  // 存月数，null 表示未填
+        ageAtCreate: inputMonths === null ? null : Math.max(0, Math.round(inputMonths - elapsed)),
+        gender: editForm.gender || 'unknown',
         healthStatus: editForm.healthStatus,
         description: editForm.description,
         status: editForm.status,

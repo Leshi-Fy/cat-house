@@ -68,6 +68,8 @@ module.exports = {
     fair: '一般',
     poor: '较差',
     injured: '受伤',
+    sick: '生病',
+    deceased: '已去世',
   },
 
   CROWD_TYPE_TEXT: {
