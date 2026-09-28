@@ -18,6 +18,7 @@
 
     <view class="section card">
       <view class="section-title">报销金额 *</view>
+      <view class="balance-line">当前可报销余额：<text class="balance-num">{{availableText}}</text>（已报销、审核中冻结的金额都占用额度）</view>
       <view class="amount-wrap">
         <text class="prefix">¥</text>
         <input class="amount-input" type="digit" placeholder="0.00" value="{{amount}}" bindinput="onInputAmount" />
@@ -33,7 +34,7 @@
       <button class="btn-primary submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
         {{submitting ? '提交中...' : '📋 提交报销申请'}}
       </button>
-      <text class="tip-text">提交后由管理员审核</text>
+      <text class="tip-text">💡 报销审核功能开发中：提交后由平台管理员处理，通过后金额自动转入钱包，可前往「我的钱包」提现</text>
     </view>
   </view>
 </view>

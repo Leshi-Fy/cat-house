@@ -16,14 +16,17 @@ public class AuthService {
 
     private final WeChatService weChatService;
     private final UserMapper userMapper;
+    private final TokenService tokenService;
 
-    public AuthService(WeChatService weChatService, UserMapper userMapper) {
+    public AuthService(WeChatService weChatService, UserMapper userMapper, TokenService tokenService) {
         this.weChatService = weChatService;
         this.userMapper = userMapper;
+        this.tokenService = tokenService;
     }
 
     /**
-     * 微信登录：code -> openid；首次登录自动建用户。
+     * 微信登录：code -> openid；首次登录自动建用户；签发 token。
+     * 返回：{ openid, userInfo, isNew, token, expiresIn }
      */
     public Map<String, Object> login(String code) {
         String openid = weChatService.jscode2session(code).getOpenid();
@@ -43,6 +46,9 @@ public class AuthService {
         res.put("openid", openid);
         res.put("userInfo", FieldUtils.clientMap(u));
         res.put("isNew", isNew);
+        // 鉴权 token：后续所有请求需带 Authorization: Bearer <token>
+        res.put("token", tokenService.issue(openid));
+        res.put("expiresIn", tokenService.ttlMillis() / 1000);
         return res;
     }
 

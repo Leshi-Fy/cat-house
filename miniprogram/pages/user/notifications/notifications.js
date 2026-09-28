@@ -6,14 +6,22 @@
  * 点击即可跳到社区里对应的动态或众筹详情。
  *
  * 分页规则（产品约定）：
- *   - 默认 Tab 为「全部」，首次进入加载最新 10 条（按时间倒序）
- *   - 上滑到底自动再加载 10 条历史数据，直到全部加载完
+ *   - 进入页面先看「未读」：当前 Tab 有未读就只展示未读（一次最多 20 条），
+ *     没有未读则只展示最近 3 条 —— 首屏不铺满，避免一进来就被历史消息淹没
+ *   - 上滑到底自动加载更早的 10 条历史（按时间倒序），直到全部加载完
+ *   - 下拉刷新重新走首屏规则（有未读看未读，没有就看最近 3 条）
  *   - 后端对「自己赞/评论自己的内容」也生成通知（isSelf=true），展示为「你」
+ *
+ * ⚠️ 首屏用 unreadOnly 只拉未读，但后端返回的 total 恒为该 Tab 的全量总数，
+ *    前端靠 items.length < total 判断还有没有更早的历史可翻；
+ *    total 若被 is_read 过滤掉，会提前判定「已全部加载」。
  */
 const { timeAgo } = require('../../../utils/util');
 const api = require('../../../utils/api');
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 10;        // 上滑加载的每页条数
+const PREVIEW_SIZE = 3;      // 没有未读时，首屏只展示最近 3 条
+const MAX_UNREAD_ONCE = 20;  // 首屏一次最多拉多少条未读
 
 const TAB_EMPTY_TEXT = {
   all: '暂无消息',
@@ -47,7 +55,6 @@ Page({
     isLoading: false,
     hasMore: true,
     page: 0,
-    pageSize: PAGE_SIZE,
     emptyText: TAB_EMPTY_TEXT.all,
     unread: {
       total: 0,
@@ -57,30 +64,34 @@ Page({
     },
   },
 
-  onLoad() {
-    this.loadUnreadCount();
-    this.loadList(true);
+  // ⚠️ 必须先 await 未读数再拉首屏：首屏要按未读数决定「拉未读还是拉最近 3 条」，
+  // 且渲染完会立刻触发 autoMarkReadIfNeeded（它按 this.data.unread 判断有没有未读）。
+  // 若并发，列表可能先返回而此时 unread 还是 0，自动标记就会被误跳过。
+  async onLoad() {
+    await this.loadUnreadCount();
+    await this.loadFirstScreen();
   },
 
-  onShow() {
-    // 每次进入刷新未读数与列表（从详情页返回后已读状态要同步）
-    this.loadUnreadCount();
-    if (this.data.items.length) this.loadList(true);
+  async onShow() {
+    // 从详情页返回：只同步未读角标，不重置列表 —— 否则刚点开一条消息，
+    // 返回后未读归 0，列表会缩回「最近 3 条」，浏览位置也丢了
+    await this.loadUnreadCount();
   },
 
   onPullDownRefresh() {
-    Promise.all([this.loadUnreadCount(), this.loadList(true)])
+    this.loadUnreadCount()
+      .then(() => this.loadFirstScreen())
       .then(() => wx.stopPullDownRefresh())
       .catch(() => wx.stopPullDownRefresh());
   },
 
   /** 上滑到底：自动加载更早的 10 条 */
   onReachBottom() {
-    this.loadList(false);
+    return this.loadMorePage();
   },
 
-  /** 切换 Tab */
-  switchTab(e) {
+  /** 切换 Tab：按该 Tab 的未读数重新走首屏规则 */
+  async switchTab(e) {
     const tab = e.currentTarget.dataset.tab;
     if (tab === this.data.activeTab) return;
     this.setData({
@@ -91,7 +102,7 @@ Page({
       hasMore: true,
       emptyText: TAB_EMPTY_TEXT[tab] || '暂无消息',
     });
-    this.loadList(true);
+    await this.loadFirstScreen();
   },
 
   /** 加载未读数量（顺带同步首页铃铛角标） */
@@ -116,56 +127,96 @@ Page({
   },
 
   /**
-   * 加载通知列表
-   * @param {boolean} reset true=重新加载第一页；false=追加下一页
+   * 首屏：有未读 → 只展示未读；没有未读 → 只展示最近 3 条。
+   * 之后的上滑都走 loadMorePage() 翻更早的历史。
    */
-  async loadList(reset = false) {
-    if (this.data.isLoading) return;
-    if (!reset && !this.data.hasMore) return;
+  async loadFirstScreen() {
     if (!wx.getStorageSync('openid')) {
       wx.showToast({ title: '请先登录', icon: 'none' });
       return;
     }
+    if (this.data.isLoading) return;
 
-    const page = reset ? 0 : this.data.page;
-    this.setData({ isLoading: true, page });
+    const tab = this.data.activeTab;
+    const unreadOfTab = this._unreadOfTab(tab);
+    // 有未读：一次把未读拉完（上限 20，太多就只取最新的 20 条，其余混在历史里翻）
+    // 无未读：只展示最近 3 条
+    const firstSize = unreadOfTab > 0
+      ? Math.min(Math.max(unreadOfTab, PREVIEW_SIZE), MAX_UNREAD_ONCE)
+      : PREVIEW_SIZE;
+
+    this.setData({ isLoading: true, items: [], page: 0, hasMore: true });
 
     try {
       const { result } = await api.callFunction('notify-operations', {
         action: 'list',
-        type: this.data.activeTab,   // 'all' 时 api.js 不传 type，后端返回全部类型
-        page,
-        pageSize: this.data.pageSize,
+        type: tab,                       // 'all' 时 api.js 不传 type，后端返回全部类型
+        unreadOnly: unreadOfTab > 0,     // 有未读时首屏只要未读
+        page: 0,
+        pageSize: firstSize,
       });
       if (!result || result.error) throw new Error((result && result.error) || '加载失败');
 
       const list = Array.isArray(result.data) ? result.data : [];
       const total = typeof result.total === 'number' ? result.total : list.length;
-      const newItems = list.map(item => ({
-        ...item,
-        formattedTime: timeAgo(item.createTime),
-        amountDisplay: item.amount ? (item.amount / 100).toFixed(2) : '0.00',
-        actionText: buildActionText(item),
-        // 目标已被删除时只展示历史摘要，不再跳转
-        canJump: item.targetExists && !!item.targetType && item.targetType !== 'none',
-      }));
-
-      // 追加时按 _id 去重：翻页期间若有新通知插入，OFFSET 分页可能带出重复项
-      let items;
-      if (reset) {
-        items = newItems;
-      } else {
-        const seen = new Set(this.data.items.map(i => i._id));
-        items = this.data.items.concat(newItems.filter(i => !seen.has(i._id)));
-      }
+      const items = list.map(item => this._decorate(item));
 
       this.setData({
         items,
         total,
         isLoading: false,
-        // 以总数为准判断是否还有历史数据，避免最后一页恰好满 10 条时多请求一次
+        // 历史分页的起点：首屏这几条一定是全量里最新的，直接按条数跳过对应页数，
+        // 免得第一二次上滑拉回来的全是已经展示过的条目（空转请求）。
+        // 剩下的重叠部分仍靠 _id 去重兜底。
+        page: Math.floor(items.length / PAGE_SIZE),
         hasMore: items.length < total,
+      });
+
+      // 未读已经展示出来了 = 用户已经看到 → 当前 Tab 的未读标记直接清掉
+      if (unreadOfTab > 0) this.autoMarkReadIfNeeded();
+    } catch (err) {
+      console.error('加载通知失败:', err);
+      this.setData({ isLoading: false });
+      wx.showToast({ title: err.message || '加载失败', icon: 'none' });
+    }
+  },
+
+  /**
+   * 上滑加载更早的一页历史（全量，不再区分是否已读）
+   */
+  async loadMorePage() {
+    if (this.data.isLoading) return;
+    if (!this.data.hasMore) return;
+    if (!wx.getStorageSync('openid')) return;
+
+    const page = this.data.page;
+    this.setData({ isLoading: true });
+
+    try {
+      const { result } = await api.callFunction('notify-operations', {
+        action: 'list',
+        type: this.data.activeTab,
+        page,
+        pageSize: PAGE_SIZE,
+      });
+      if (!result || result.error) throw new Error((result && result.error) || '加载失败');
+
+      const list = Array.isArray(result.data) ? result.data : [];
+      const total = typeof result.total === 'number' ? result.total : this.data.total;
+
+      // 按 _id 去重：首屏的未读会与历史第 0 页重叠；翻页期间若有新通知插入，
+      // OFFSET 分页也可能带出重复项
+      const seen = new Set(this.data.items.map(i => i._id));
+      const fresh = list.map(item => this._decorate(item)).filter(i => !seen.has(i._id));
+      const items = this.data.items.concat(fresh);
+
+      this.setData({
+        items,
+        total,
+        isLoading: false,
         page: page + 1,
+        // 以总数为准，避免最后一页恰好满 10 条时多请求一次；最后一页返回空即到底
+        hasMore: items.length < total && list.length > 0,
       });
     } catch (err) {
       console.error('加载通知失败:', err);
@@ -176,8 +227,52 @@ Page({
 
   /** 手动点击「加载更多」（触底未触发时的兜底） */
   loadMore() {
-    if (this.data.hasMore && !this.data.isLoading) {
-      this.loadList(false);
+    this.loadMorePage();
+  },
+
+  /** 当前 Tab 的未读数：all 用总数，其它用对应类型计数 */
+  _unreadOfTab(tab) {
+    const unread = this.data.unread || {};
+    const key = tab === 'all' ? 'total' : tab + 'Count';
+    return Number(unread[key]) || 0;
+  },
+
+  /** 通知 -> 展示模型（时间文案 / 金额 / 动作文案 / 能否跳转） */
+  _decorate(item) {
+    return {
+      ...item,
+      formattedTime: timeAgo(item.createTime),
+      amountDisplay: item.amount ? (item.amount / 100).toFixed(2) : '0.00',
+      actionText: buildActionText(item),
+      // 目标已被删除时只展示历史摘要，不再跳转
+      canJump: item.targetExists && !!item.targetType && item.targetType !== 'none',
+    };
+  },
+
+  /**
+   * 打开列表即视为已读：自动清掉当前 Tab 的未读标记
+   * - 「全部」Tab → 清所有类型；其它 Tab → 只清该类型
+   * - 未读数为 0 时直接返回，所以从详情页返回、切 Tab 等场景不会重复发请求
+   * - 清完会刷新未读数，首页铃铛角标（app.globalData.unreadCount）随之同步
+   */
+  async autoMarkReadIfNeeded() {
+    const tab = this.data.activeTab;
+    if (!(this._unreadOfTab(tab) > 0)) return;
+    if (this._markingRead) return; // 并发保护
+    this._markingRead = true;
+    try {
+      const { result } = await api.callFunction('notify-operations', {
+        action: 'markAllRead',
+        type: tab,
+      });
+      if (result && result.error) throw new Error(result.error);
+      // 本地立刻置为已读，省一次列表刷新
+      this.setData({ items: this.data.items.map(i => ({ ...i, isRead: true })) });
+      await this.loadUnreadCount();
+    } catch (err) {
+      console.error('自动标记已读失败:', err);
+    } finally {
+      this._markingRead = false;
     }
   },
 

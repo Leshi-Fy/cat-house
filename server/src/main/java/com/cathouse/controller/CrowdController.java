@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+
+
 @SuppressWarnings("unchecked")
 @RestController
 @RequestMapping("/api/crowdfundings")
@@ -91,11 +93,26 @@ public class CrowdController {
         return Result.ok();
     }
 
+    /**
+     * 审核报销申请（仅管理员）。
+     * body: { openid, receiptId, approved }
+     */
     @PostMapping("/{id}/receipts/approve")
     public Result<Void> approveReceipt(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
-        Boolean approved = Boolean.TRUE.equals(body.get("approved"));
-        crowdService.approveReceipt(id, approved != null && approved);
+        String openid = (String) body.get("openid");
+        String receiptId = (String) body.get("receiptId");
+        boolean approved = Boolean.TRUE.equals(body.get("approved"));
+        crowdService.approveReceipt(openid, id, receiptId, approved);
         return Result.ok();
+    }
+
+    /**
+     * 管理后台：列出所有「审核中」的报销申请（仅管理员）。
+     */
+    @GetMapping("/receipts/pending")
+    public Result<List<Map<String, Object>>> pendingReceipts(@RequestParam("openid") String openid) {
+        crowdService.requireAdmin(openid);
+        return Result.ok(crowdService.listPendingReceipts());
     }
 
     @PostMapping("/{id}/complete")

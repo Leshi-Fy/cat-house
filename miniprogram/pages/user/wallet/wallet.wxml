@@ -1,0 +1,33 @@
+<view class="page">
+  <!-- 余额卡片 -->
+  <view class="balance-card">
+    <text class="balance-label">可提现余额</text>
+    <text class="balance-amount">{{balanceText}}</text>
+    <view class="balance-sub">
+      <text>累计入账 {{totalIncomeText || '¥0.00'}}</text>
+      <text>累计提现 {{totalWithdrawText || '¥0.00'}}</text>
+    </view>
+    <button class="withdraw-btn" bindtap="onWithdraw">申请提现</button>
+    <view class="wallet-tip">报销审核通过后金额自动入账；提现由平台核对后打款（微信企业付款通道开发中）。</view>
+  </view>
+
+  <!-- 流水 -->
+  <view class="section-title">资金流水</view>
+  <view class="tx-list" wx:if="{{transactions.length > 0}}">
+    <view class="tx-item" wx:for="{{transactions}}" wx:key="_id">
+      <view class="tx-left">
+        <text class="tx-type">{{item.typeText}}</text>
+        <text class="tx-time">{{item.timeText}}</text>
+      </view>
+      <view class="tx-right">
+        <text class="tx-amount {{item.type === 'withdraw' ? 'minus' : 'plus'}}">{{item.signedDisplay}}</text>
+        <text class="tx-status {{item.status === 'pending' ? 'pending' : ''}}">{{item.statusText}}</text>
+      </view>
+    </view>
+    <view class="load-more" wx:if="{{!isLoading && hasMore}}"><text>上拉加载更多</text></view>
+    <view class="no-more" wx:if="{{!hasMore}}"><text>没有更多了</text></view>
+  </view>
+  <view class="empty-state" wx:else>
+    <text>暂无资金流水</text>
+  </view>
+</view>

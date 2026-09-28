@@ -165,14 +165,28 @@ Page({
         deadline: new Date(form.deadline + 'T23:59:59'),
       };
 
-      await wx.cloud.callFunction({
+      const { result } = await wx.cloud.callFunction({
         name: 'crowd-operations',
         data: { action: 'create', crowdData },
       });
+      // 后端业务错误会被 api.js 归一化成 { result: { error } }，不会抛异常 —— 必须显式检查，
+      // 否则创建失败也会往下走、弹出「发起成功」。
+      if (result && result.error) {
+        throw new Error(result.error);
+      }
+      const crowdId = result && (result.crowdId || result.id);
 
       wx.hideLoading();
       wx.showToast({ title: '众筹发起成功！', icon: 'success' });
-      setTimeout(() => wx.navigateBack(), 1500);
+      // 跳详情页。用 redirectTo 而非 navigateTo：把「创建页」从页面栈里替换掉，
+      // 这样在详情页返回时直接回到列表，不会退回已经提交过的表单页。
+      setTimeout(() => {
+        if (crowdId) {
+          wx.redirectTo({ url: '/pages/crowd/detail/detail?id=' + crowdId });
+        } else {
+          wx.navigateBack();
+        }
+      }, 1200);
     } catch (err) {
       console.error('创建众筹失败:', err);
       showError('创建失败，请重试');

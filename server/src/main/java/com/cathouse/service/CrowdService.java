@@ -21,15 +21,53 @@ public class CrowdService {
     private final CrowdCommentMapper crowdCommentMapper;
     private final UserMapper userMapper;
     private final NotifyService notifyService;
+    private final WalletService walletService;
+
+    /** 管理员 openid 白名单（逗号分隔），仅这些人能审核报销申请。配置：cathouse.admin.openids */
+    @org.springframework.beans.factory.annotation.Value("${cathouse.admin.openids:}")
+    private String adminOpenids;
 
     public CrowdService(CrowdfundingMapper crowdfundingMapper, CrowdLikeMapper crowdLikeMapper,
                         CrowdCommentMapper crowdCommentMapper, UserMapper userMapper,
-                        NotifyService notifyService) {
+                        NotifyService notifyService, WalletService walletService) {
         this.crowdfundingMapper = crowdfundingMapper;
         this.crowdLikeMapper = crowdLikeMapper;
         this.crowdCommentMapper = crowdCommentMapper;
         this.userMapper = userMapper;
         this.notifyService = notifyService;
+        this.walletService = walletService;
+    }
+
+    // ---------- 报销余额（单位：分） ----------
+    /** 指定状态的报销总额 */
+    private int receiptSum(Crowdfunding c, String status) {
+        List<Map<String, Object>> rs = c.getReceiptRecords();
+        if (rs == null) return 0;
+        int s = 0;
+        for (Map<String, Object> r : rs) {
+            if (r == null || !status.equals(String.valueOf(r.get("status")))) continue;
+            s += toInt(r.get("amount"), 0);
+        }
+        return s;
+    }
+
+    /** 已报销（审核通过）金额 */
+    public int reimbursedAmount(Crowdfunding c) {
+        return receiptSum(c, "approved");
+    }
+
+    /** 审核中冻结的金额 */
+    public int frozenAmount(Crowdfunding c) {
+        return receiptSum(c, "pending");
+    }
+
+    /**
+     * 可报销余额 = 已筹金额 − 已报销 − 审核中冻结。
+     * 审核中的申请也要占额度，否则两笔同时申请、先后通过就会超支。
+     */
+    public int availableBalance(Crowdfunding c) {
+        int raised = c.getRaisedAmount() == null ? 0 : c.getRaisedAmount();
+        return raised - reimbursedAmount(c) - frozenAmount(c);
     }
 
     public String create(String openid, Map<String, Object> cd) {
@@ -77,7 +115,21 @@ public class CrowdService {
         if (c == null) throw new ApiException("众筹不存在");
         Map<String, Object> m = FieldUtils.clientMap(c);
         m.put("isLiked", isLiked(crowdId, openid));
+        putBalance(m, c);
         return m;
+    }
+
+    /** 往返回体里补余额字段（分 + 元的展示串都给，前端不用自己换算） */
+    private void putBalance(Map<String, Object> m, Crowdfunding c) {
+        int reimbursed = reimbursedAmount(c);
+        int frozen = frozenAmount(c);
+        int available = availableBalance(c);
+        m.put("reimbursedAmount", reimbursed);
+        m.put("frozenAmount", frozen);
+        m.put("availableBalance", available);
+        m.put("availableBalanceText", "¥" + WalletService.fen2yuan(available));
+        m.put("reimbursedAmountText", "¥" + WalletService.fen2yuan(reimbursed));
+        m.put("frozenAmountText", "¥" + WalletService.fen2yuan(frozen));
     }
 
     // ---------- 点赞 ----------
@@ -222,11 +274,21 @@ public class CrowdService {
         Crowdfunding c = crowdfundingMapper.selectById(crowdId);
         if (c == null) throw new ApiException("众筹不存在");
         if (!openid.equals(c.getInitiatorId())) throw new ApiException("仅发起人可申请报销");
+        int amt = amount == null ? 0 : amount;
+        if (amt <= 0) throw new ApiException("报销金额必须大于 0");
+
+        // 余额校验（后端兜底，前端拦不住并发）：可用 = 已筹 − 已报销 − 审核中冻结
+        int available = availableBalance(c);
+        if (amt > available) {
+            throw new ApiException("可报销余额不足：当前可用 ¥" + WalletService.fen2yuan(available)
+                    + "，本次申请 ¥" + WalletService.fen2yuan(amt));
+        }
+
         List<Map<String, Object>> records = c.getReceiptRecords() == null ? new ArrayList<>() : new ArrayList<>(c.getReceiptRecords());
         Map<String, Object> record = new HashMap<>();
         record.put("_id", crowdId + "_" + System.currentTimeMillis());
         record.put("status", "pending");
-        record.put("amount", amount == null ? 0 : amount);
+        record.put("amount", amt);
         record.put("remark", remark == null ? "" : remark);
         record.put("receipts", receipts == null ? new ArrayList<>() : receipts);
         record.put("create_time", new java.sql.Timestamp(System.currentTimeMillis()).toLocalDateTime().toString());
@@ -237,12 +299,104 @@ public class CrowdService {
         crowdfundingMapper.updateById(c);
     }
 
-    public void approveReceipt(String crowdId, boolean approved) {
+    /**
+     * 审核报销申请（管理员）。
+     * 通过后：金额从众筹额度中扣除（记为已报销），并转入发起人钱包，由发起人自行提现。
+     */
+    public void approveReceipt(String openid, String crowdId, String receiptId, boolean approved) {
+        requireAdmin(openid);
         Crowdfunding c = crowdfundingMapper.selectById(crowdId);
         if (c == null) throw new ApiException("众筹不存在");
-        c.setReceiptStatus(approved ? "approved" : "rejected");
+
+        List<Map<String, Object>> records = c.getReceiptRecords() == null ? new ArrayList<>() : new ArrayList<>(c.getReceiptRecords());
+        Map<String, Object> target = null;
+        if (receiptId != null && !receiptId.isBlank()) {
+            for (Map<String, Object> r : records) {
+                if (r != null && receiptId.equals(String.valueOf(r.get("_id")))) { target = r; break; }
+            }
+        }
+        if (target == null) throw new ApiException("报销申请不存在");
+        if (!"pending".equals(String.valueOf(target.get("status")))) throw new ApiException("该申请已处理");
+
+        int amt = toInt(target.get("amount"), 0);
+
+        if (approved) {
+            // 通过前二次校验：期间可能已有其它申请通过/金额变化，不够就直接拒绝
+            // 本笔自身是 pending（已计入冻结），所以比对时要把自己加回可用额度
+            int availableWithSelf = availableBalance(c) + amt;
+            if (amt > availableWithSelf) {
+                throw new ApiException("可报销余额不足：当前可用 ¥" + WalletService.fen2yuan(availableWithSelf)
+                        + "，无法通过 ¥" + WalletService.fen2yuan(amt) + " 的报销");
+            }
+            target.put("status", "approved");
+            target.put("approved_by", openid);
+            target.put("approved_time", new java.sql.Timestamp(System.currentTimeMillis()).toLocalDateTime().toString());
+            // 转入发起人钱包（幂等：同 receiptId 只入账一次）
+            walletService.creditReimbursement(c.getInitiatorId(), crowdId, String.valueOf(target.get("_id")), amt,
+                    "众筹报销：" + (c.getCatName() == null ? "猫咪救助" : c.getCatName()));
+            notifyService.createNotification(c.getInitiatorId(), openid, "平台管理员", "",
+                    "system", null, crowdId,
+                    "你提交的报销申请已通过，¥" + WalletService.fen2yuan(amt) + " 已转入钱包，可前往钱包提现",
+                    null, amt);
+        } else {
+            target.put("status", "rejected");
+            target.put("approved_by", openid);
+            target.put("approved_time", new java.sql.Timestamp(System.currentTimeMillis()).toLocalDateTime().toString());
+            notifyService.createNotification(c.getInitiatorId(), openid, "平台管理员", "",
+                    "system", null, crowdId,
+                    "你提交的报销申请未通过，请查看发票与说明后重新提交",
+                    null, amt);
+        }
+
+        c.setReceiptRecords(records);
+        // 整体状态：还有 pending 就是审核中，否则取最后一条的结果
+        boolean hasPending = records.stream().anyMatch(r -> r != null && "pending".equals(String.valueOf(r.get("status"))));
+        c.setReceiptStatus(hasPending ? "pending" : (approved ? "approved" : "rejected"));
         c.setUpdateTime(LocalDateTime.now());
         crowdfundingMapper.updateById(c);
+    }
+
+    public void requireAdmin(String openid) {
+        if (openid == null || openid.isBlank()) throw new ApiException("未登录");
+        if (adminOpenids == null || adminOpenids.isBlank()) throw new ApiException("未配置管理员，请联系平台");
+        for (String id : adminOpenids.split(",")) {
+            if (openid.equals(id.trim())) return;
+        }
+        throw new ApiException("仅管理员可审核报销申请");
+    }
+
+    /** 当前用户是否为报销审核管理员 */
+    public boolean isAdmin(String openid) {
+        if (openid == null || openid.isBlank() || adminOpenids == null || adminOpenids.isBlank()) return false;
+        for (String id : adminOpenids.split(",")) {
+            if (openid.equals(id.trim())) return true;
+        }
+        return false;
+    }
+
+    /** 管理后台：列出所有「审核中」的报销申请（跨全部众筹） */
+    public List<Map<String, Object>> listPendingReceipts() {
+        QueryWrapper<Crowdfunding> qw = new QueryWrapper<>();
+        qw.isNotNull("receipt_records").orderByDesc("update_time").last("LIMIT 300");
+        List<Crowdfunding> all = crowdfundingMapper.selectList(qw);
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Crowdfunding c : all) {
+            List<Map<String, Object>> rs = c.getReceiptRecords();
+            if (rs == null) continue;
+            for (Map<String, Object> r : rs) {
+                if (r != null && "pending".equals(String.valueOf(r.get("status")))) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("crowdId", c.getId());
+                    item.put("crowdName", c.getCatName());
+                    item.put("initiatorName", c.getInitiatorName());
+                    item.put("raisedAmount", c.getRaisedAmount() == null ? 0 : c.getRaisedAmount());
+                    item.put("availableBalance", availableBalance(c));
+                    item.put("receipt", r);
+                    out.add(item);
+                }
+            }
+        }
+        return out;
     }
 
     public void completeCrowd(String crowdId) {

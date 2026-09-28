@@ -11,6 +11,7 @@ Page({
     remark: '',
     amount: '',
     submitting: false,
+    availableText: '¥0.00',  // 可报销余额
   },
 
   onLoad(options) {
@@ -19,7 +20,22 @@ Page({
 
     if (options.id) {
       this.setData({ crowdId: options.id });
+      this.loadCrowd(options.id);
     }
+  },
+
+  // 拉取众筹详情，展示可报销余额（含已报销/冻结口径）
+  async loadCrowd(crowdId) {
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'crowd-operations', data: { action: 'detail', crowdId },
+      });
+      if (result && !result.error) {
+        this.setData({
+          availableText: result.availableBalanceText || '¥0.00',
+        });
+      }
+    } catch (e) {}
   },
 
   /**

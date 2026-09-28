@@ -14,8 +14,12 @@ spring:
 
 cathouse:
   wechat:
-    # 生产建议用环境变量覆盖明文： -Dcathouse.wechat.secret=xxx 或 ENV cathouse.wechat.secret
-    secret: ${WECHAT_SECRET:e7de696e0acc940ebf5b6ce1a0488248}
+    # ⚠️ 生产必须注入环境变量 CATHOUSE_WECHAT_SECRET（明文已从仓库移除）
+    #    未注入时登录会直接报「未配置微信 AppID/Secret」，不会静默用错值
+    secret: ${CATHOUSE_WECHAT_SECRET:YOUR_WECHAT_SECRET}
+  auth:
+    # ⚠️ 生产必须注入 CATHOUSE_AUTH_SECRET，否则用的默认密钥 = 任何人可伪造 token
+    secret: ${CATHOUSE_AUTH_SECRET:cathouse-dev-secret-change-me}
   file:
     # 必须改成你的 https 域名（微信正式发布要求 HTTPS + 已备案域名）
     # 例如 base-url: https://cat.example.com

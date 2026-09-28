@@ -105,13 +105,25 @@ public class NotifyService {
      * targetType（feed|crowd|none）、targetTitle、targetPhoto、targetExists、isSelf。
      */
     public Map<String, Object> list(String recipientId, String type, long page, long pageSize) {
+        return list(recipientId, type, page, pageSize, false);
+    }
+
+    /**
+     * @param unreadOnly true = 只返回未读通知（消息页首屏「优先看未读」用）
+     * ⚠️ total 恒为「该 Tab 下的全量总数」，不随 unreadOnly 变化：
+     *    前端用 items.length < total 判断还有没有更早的历史可翻页，
+     *    total 若被 is_read 过滤掉就会提前判定「已全部加载」。
+     */
+    public Map<String, Object> list(String recipientId, String type, long page, long pageSize, boolean unreadOnly) {
         QueryWrapper<Notification> qw = new QueryWrapper<>();
         qw.eq("recipient_id", recipientId);
         if (type != null && !type.isBlank()) qw.eq("type", type);
+        if (unreadOnly) qw.eq("is_read", false);
         qw.orderByDesc("create_time");
         qw.last("LIMIT " + pageSize + " OFFSET " + (page * pageSize));
         List<Notification> rows = notificationMapper.selectList(qw);
 
+        // 总数不加 is_read 过滤（原因见上）
         QueryWrapper<Notification> cqw = new QueryWrapper<>();
         cqw.eq("recipient_id", recipientId);
         if (type != null && !type.isBlank()) cqw.eq("type", type);

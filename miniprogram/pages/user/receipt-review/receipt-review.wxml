@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="page-tip">仅平台管理员可处理。通过后金额转入发起人钱包，由发起人自行提现。</view>
+
+  <view class="list" wx:if="{{list.length > 0}}">
+    <view class="card" wx:for="{{list}}" wx:key="_id">
+      <view class="card-head">
+        <view class="card-title">
+          <text class="cat-name">{{item.crowdName || '猫咪救助'}}</text>
+          <text class="amount">{{item.amountText}}</text>
+        </view>
+        <text class="status">待审核</text>
+      </view>
+
+      <view class="card-meta">
+        <text>发起人：{{item.initiatorName || '匿名'}}</text>
+        <text>已筹 {{item.raisedText}} · 可报销 {{item.availableText}}</text>
+      </view>
+
+      <view class="remark" wx:if="{{item.remark}}">说明：{{item.remark}}</view>
+
+      <view class="receipts" wx:if="{{item.receipts.length > 0}}">
+        <image wx:for="{{item.receipts}}" wx:for-item="img" wx:key="*this" class="receipt-img"
+               src="{{img}}" mode="aspectFill" data-url="{{img}}" data-urls="{{item.receipts}}" bindtap="previewImage" />
+      </view>
+
+      <view class="actions">
+        <button class="btn reject" data-crowd-id="{{item.crowdId}}" data-receipt-id="{{item._id}}"
+                bindtap="onReject" disabled="{{processingId === (item.crowdId + '|' + item._id)}}">驳回</button>
+        <button class="btn approve" data-crowd-id="{{item.crowdId}}" data-receipt-id="{{item._id}}"
+                bindtap="onApprove" disabled="{{processingId === (item.crowdId + '|' + item._id)}}">通过</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text>暂无待审核的报销申请</text>
+  </view>
+</view>

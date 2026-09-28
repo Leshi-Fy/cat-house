@@ -1,5 +1,5 @@
 {
   "usingComponents": {},
   "enablePullDownRefresh": true,
-  "onReachBottomDistance": 80
+  "navigationBarTitleText": "报销审核"
 }

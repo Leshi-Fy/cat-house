@@ -50,6 +50,10 @@ public class MergeService {
         StrayCat from = strayCatMapper.selectById(req.getFromCatId());
         StrayCat to = strayCatMapper.selectById(req.getToCatId());
         if (from == null || to == null) throw new ApiException("猫不存在");
+        // 越权校验：只有被合并目标档案（toCat）的创建者能审核，避免任何人审批别人的档案
+        if (openid == null || to.getCreatorId() == null || !openid.equals(to.getCreatorId())) {
+            throw new ApiException("仅「" + (to.getName() == null ? "目标猫咪" : to.getName()) + "」档案的创建者可审核该申请");
+        }
 
         long fromTime = toMillis(from.getLastSeenTime());
         long toTime = toMillis(to.getLastSeenTime());
@@ -91,6 +95,14 @@ public class MergeService {
     public void reject(String openid, String requestId, String reason) {
         MergeRequest req = mergeRequestMapper.selectById(requestId);
         if (req == null) throw new ApiException("申请不存在");
+        if (!"pending".equals(req.getStatus())) throw new ApiException("该申请已处理");
+        // 越权校验：与 approve 一致，只有目标档案创建者能处理
+        StrayCat to = strayCatMapper.selectById(req.getToCatId());
+        if (to != null) {
+            if (openid == null || to.getCreatorId() == null || !openid.equals(to.getCreatorId())) {
+                throw new ApiException("仅「" + (to.getName() == null ? "目标猫咪" : to.getName()) + "」档案的创建者可审核该申请");
+            }
+        }
         req.setStatus("rejected");
         req.setRejectedById(openid);
         req.setRejectReason(reason == null ? "" : reason);

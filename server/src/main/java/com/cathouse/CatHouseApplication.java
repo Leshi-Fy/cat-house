@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @MapperScan("com.cathouse.mapper")
+@org.springframework.scheduling.annotation.EnableScheduling
 public class CatHouseApplication {
     public static void main(String[] args) {
         SpringApplication.run(CatHouseApplication.class, args);

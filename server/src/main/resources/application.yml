@@ -37,12 +37,19 @@ mybatis-plus:
   mapper-locations: classpath*:/mapper/*.xml
 
 cathouse:
+  # ⚠️ 密钥一律走环境变量，仓库里不再保存明文。
+  #    本机开发：把值写进 devtools/.env.local（已被 .gitignore 忽略），由 cathouse-dev.sh 注入
+  #    IDEA     ：Run/Debug Configurations → Environment variables 里加
+  #    生产     ：系统环境变量 / 容器 env / K8s Secret
   wechat:
     appid: wx9c42b2dc8d0f83eb
-    # AppSecret 与 appid 绑定，dev/prod 相同；生产建议用环境变量覆盖，勿明文提交：
-    #   java -jar server.jar --spring.profiles.active=prod -Dcathouse.wechat.secret=xxx
-    #   或 ENV: cathouse.wechat.secret
-    secret: e7de696e0acc940ebf5b6ce1a0488248
+    # 未设置 CATHOUSE_WECHAT_SECRET 时登录会报「未配置微信 AppID/Secret」
+    secret: ${CATHOUSE_WECHAT_SECRET:YOUR_WECHAT_SECRET}
+  auth:
+    # token 签名密钥（HMAC-SHA256）。未设置时用默认值 —— 仅能用于本地开发，
+    # 任何人拿到默认值都能伪造任意用户的 token，生产必须覆盖！
+    secret: ${CATHOUSE_AUTH_SECRET:cathouse-dev-secret-change-me}
+    token-ttl-hours: 720   # 30 天
   file:
     # 上传文件保存目录（绝对或相对均可，相对路径相对于 jar 启动目录）
     upload-dir: ./uploads

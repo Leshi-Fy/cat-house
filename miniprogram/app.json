@@ -18,7 +18,9 @@
     "pages/crowd/donate/donate",
     "pages/crowd/receipt/receipt",
     "pages/user/merge-review/merge-review",
-    "pages/user/notifications/notifications"
+    "pages/user/notifications/notifications",
+    "pages/user/wallet/wallet",
+    "pages/user/receipt-review/receipt-review"
   ],
   "window": {
     "backgroundColor": "#FFF8F0",

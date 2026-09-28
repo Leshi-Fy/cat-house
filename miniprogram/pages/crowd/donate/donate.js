@@ -86,6 +86,13 @@ Page({
 
     try {
       const userInfo = await app.login();
+      // ⚠️ app.login() 失败时返回 null（并已弹过登录失败提示）。这里必须中断：
+      // 否则会以「匿名爱心人士」的名义继续记账，用户还看到「感谢你的爱心」——
+      // 实际后端根本不知道是谁捐的，发起人也收不到通知。
+      if (!userInfo) {
+        this.setData({ submitting: false });
+        return;
+      }
       const amountFen = Math.round(Number(amount) * 100);
 
       // TODO: 接入微信支付

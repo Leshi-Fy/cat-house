@@ -82,6 +82,11 @@
     <!-- 报销记录 -->
     <view class="records-card card">
       <view class="card-title">📋 报销记录（{{receipts.length}}）</view>
+      <view class="balance-hint" wx:if="{{crowd.isInitiator}}">
+        <text class="bh-main">可报销余额 {{crowd.availableBalanceText || '¥0.00'}}</text>
+        <text class="bh-sub">已报销 {{crowd.reimbursedAmountText || '¥0.00'}} · 审核中冻结 {{crowd.frozenAmountText || '¥0.00'}}</text>
+        <text class="bh-sub">报销审核通过后金额自动转入钱包，可前往「我的钱包」提现</text>
+      </view>
       <view class="record-item" wx:for="{{receipts}}" wx:key="_id">
         <view class="record-left">
           <view class="record-name-row">
@@ -171,6 +176,8 @@
 
     <!-- 底部操作 -->
     <view class="bottom-actions safe-bottom">
+      <view class="dev-tip" wx:if="{{!crowd.isInitiator}}">💡 捐款为演示模式，真实微信支付开发中，不会产生真实扣款</view>
+      <view class="dev-tip" wx:if="{{crowd.isInitiator && crowd.status === 'ongoing'}}">💡 报销审核功能开发中：提交后由平台管理员处理</view>
       <button class="btn-primary donate-btn" bindtap="onDonate" wx:if="{{!crowd.isExpired && !crowd.isInitiator}}">
         ❤️ 参与捐款
       </button>

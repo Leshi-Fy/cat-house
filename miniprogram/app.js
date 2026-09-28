@@ -26,17 +26,25 @@ App({
   },
 
   // 检查登录状态
+  // ⚠️ 启用鉴权后，登录态必须「token + openid」同时存在才算数。
+  // 只有 openid 没有 token（升级鉴权前的旧缓存就是这种）不能算已登录：
+  // 否则 login() 会被 isLoggedIn 短路、拒绝重新登录，而请求又因缺 token 被后端 401，
+  // 形成「页面以为已登录 → 请求 401 → 补登录被跳过 → 永远登不上」的死结。
   checkLogin() {
+    const token = wx.getStorageSync('token');
     const openid = wx.getStorageSync('openid');
-    if (openid) {
-      this.globalData.isLoggedIn = true;
-      this.globalData.openid = openid;
-      // 从缓存恢复用户信息
-      const userInfo = wx.getStorageSync('userInfo');
-      if (userInfo) {
-        this.globalData.userInfo = userInfo;
-      }
+    // 缺 token 时一并清掉半截状态，避免后续判断被脏数据带偏
+    if (!token || !openid) {
+      this.globalData.isLoggedIn = false;
+      this.globalData.token = token || '';
+      this.globalData.openid = openid || '';
+      return;
     }
+    this.globalData.token = token;
+    this.globalData.openid = openid;
+    this.globalData.isLoggedIn = true;
+    const userInfo = wx.getStorageSync('userInfo');
+    if (userInfo) this.globalData.userInfo = userInfo;
   },
 
   // 登录失败统一处理：把「具体原因」显示出来，便于定位（排查期用弹窗，信息完整）
@@ -51,8 +59,22 @@ App({
   },
 
   // 微信登录（通过 Java 后端 /api/auth/login 完成 jscode2session）
-  async login() {
-    if (this.globalData.isLoggedIn) return this.globalData.userInfo;
+  // @param {boolean} force 是否强制重新登录。api.js 收到 401 时会传 true —— 此时后端已明确判定
+  //                        token 无效，不能再用 isLoggedIn 短路，必须重新走一次 wx.login。
+  async login(force = false) {
+    if (!force && this.globalData.isLoggedIn && this.globalData.token) {
+      return this.globalData.userInfo;
+    }
+    // 强制重登：先清掉可能已失效的旧 token，避免重放请求时又带上它
+    if (force) {
+      this.globalData.isLoggedIn = false;
+      this.globalData.token = '';
+      try {
+        wx.removeStorageSync('token');
+      } catch (e) {
+        /* 忽略：清缓存失败不影响后续写入 */
+      }
+    }
 
     // 第 1 步：wx.login 拿 code
     let code;
@@ -83,6 +105,12 @@ App({
         wx.setStorageSync('openid', result.openid);
         this.globalData.openid = result.openid;
         this.globalData.isLoggedIn = true;
+        // 鉴权 token：后续所有请求由 utils/api.js 自动带上
+        // （后端 AuthFilter 会校验它，且要求请求里的 openid 与 token 内的一致）
+        if (result.token) {
+          wx.setStorageSync('token', result.token);
+          this.globalData.token = result.token;
+        }
 
         if (result.userInfo) {
           this.globalData.userInfo = result.userInfo;

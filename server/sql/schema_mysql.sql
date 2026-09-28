@@ -218,3 +218,27 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX idx_notif_recipient ON notifications(recipient_id);
 CREATE INDEX idx_notif_type ON notifications(recipient_id, type, is_read);
+
+-- ============================================================
+-- 钱包流水（报销审核通过后入账 / 用户自助提现）
+-- 说明：
+--   1. 钱包余额不从表里读字段，而是由流水实时汇总，避免余额与流水不一致。
+--      balance = Σ(reimburse_in where status='paid') - Σ(withdraw where status in ('pending','paid'))
+--      （提现提交即冻结：pending 也算已占用，防止重复提现超支）
+--   2. receipt_id 用于保证同一条报销只入账一次（幂等）。
+--   3. 金额单位统一为「分」，与 donations / crowdfundings 一致。
+-- ============================================================
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+  id            VARCHAR(36) PRIMARY KEY,
+  user_id       VARCHAR(64),
+  type          VARCHAR(32),      -- reimburse_in（报销入账）| withdraw（提现）
+  amount        INT DEFAULT 0,    -- 分；reimburse_in 记正数，withdraw 记正数（汇总时按 type 加减）
+  status        VARCHAR(32) DEFAULT 'pending', -- pending | paid | rejected
+  crowd_id      VARCHAR(36),
+  receipt_id    VARCHAR(64),
+  remark        TEXT,
+  create_time   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_wallet_user ON wallet_transactions(user_id);
+CREATE INDEX idx_wallet_receipt ON wallet_transactions(crowd_id, receipt_id);

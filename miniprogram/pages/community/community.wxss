@@ -338,6 +338,28 @@
   font-size: 28rpx;
 }
 
+/* 上划加载中：转圈 + 文案（朋友圈同款反馈） */
+.load-more.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner {
+  width: 26rpx;
+  height: 26rpx;
+  margin-right: 14rpx;
+  border: 4rpx solid #eee;
+  border-top-color: #FF9A56;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .empty-state {
   padding: 100rpx 40rpx;
 }

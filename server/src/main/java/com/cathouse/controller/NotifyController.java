@@ -22,9 +22,10 @@ public class NotifyController {
     @GetMapping
     public Result<Map<String, Object>> list(@RequestParam("openid") String openid,
                                             @RequestParam(value = "type", required = false) String type,
+                                            @RequestParam(value = "unread", required = false) Boolean unread,
                                             @RequestParam(value = "page", defaultValue = "0") long page,
                                             @RequestParam(value = "pageSize", defaultValue = "20") long pageSize) {
-        return Result.ok(notifyService.list(openid, type, page, pageSize));
+        return Result.ok(notifyService.list(openid, type, page, pageSize, Boolean.TRUE.equals(unread)));
     }
 
     @GetMapping("/unread-count")

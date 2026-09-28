@@ -35,3 +35,13 @@ server/uploads/
 cathouse.txt
 *.local.yml
 application-local.yml
+
+# 环境变量文件（密钥类，严禁入库）
+.env
+.env.local
+.env.*
+!.env.example
+
+# 后端本地运行日志（cathouse-dev.sh 启动 jar 时产生）
+server/*.out
+server/*.err

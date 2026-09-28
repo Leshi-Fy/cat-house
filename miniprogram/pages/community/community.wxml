@@ -117,12 +117,18 @@
     </view>
   </view>
 
-  <!-- 加载更多 -->
-  <view class="load-more" wx:if="{{!isLoading && hasMore && items.length > 0}}">
-    <text bindtap="loadMore">加载更多</text>
-  </view>
-  <view class="no-more" wx:if="{{!hasMore && items.length > 0}}">
-    <text>没有更多了</text>
+  <!-- 底部状态：朋友圈式，上划到底自动加载更早的一屏 -->
+  <view class="list-footer" wx:if="{{items.length > 0}}">
+    <view wx:if="{{isLoadingMore}}" class="load-more loading">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+    <view wx:elif="{{hasMore}}" class="load-more" bindtap="loadMore">
+      <text>上划加载更多</text>
+    </view>
+    <view wx:else class="no-more">
+      <text>没有更多了</text>
+    </view>
   </view>
 </view>
 

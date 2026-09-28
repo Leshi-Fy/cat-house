@@ -223,6 +223,30 @@
   font-size: 28rpx !important;
 }
 
+/* 可报销余额提示 */
+.balance-hint {
+  display: flex;
+  flex-direction: column;
+  background: #FFF8F0;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 16rpx;
+}
+.bh-main { font-size: 28rpx; font-weight: 600; color: #FF6B35; }
+.bh-sub { font-size: 22rpx; color: #999; margin-top: 6rpx; }
+
+/* 底部演示 / 开发中 提示 */
+.dev-tip {
+  width: 100%;
+  font-size: 22rpx;
+  color: #FF8C42;
+  background: #FFF1E6;
+  border-radius: 12rpx;
+  padding: 12rpx 20rpx;
+  margin-bottom: 12rpx;
+  box-sizing: border-box;
+}
+
 /* 加载中 */
 .loading-wrap {
   display: flex;
