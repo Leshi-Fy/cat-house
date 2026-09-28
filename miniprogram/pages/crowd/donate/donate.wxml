@@ -49,7 +49,7 @@
       <button class="btn-primary confirm-btn" bindtap="onConfirmDonate" disabled="{{submitting || !amount}}">
         {{submitting ? '处理中...' : '❤️ 确认捐款 ¥' + (amount || '0')}}
       </button>
-      <text class="tip-text">💡 功能开发中：当前为演示记账，真实微信支付未接入，不产生真实扣款</text>
+      <text class="tip-text">💡 捐款功能开发中，暂未接入真实支付</text>
     </view>
   </view>
 </view>

@@ -176,7 +176,7 @@
 
     <!-- 底部操作 -->
     <view class="bottom-actions safe-bottom">
-      <view class="dev-tip" wx:if="{{!crowd.isInitiator}}">💡 捐款为演示模式，真实微信支付开发中，不会产生真实扣款</view>
+      <view class="dev-tip" wx:if="{{!crowd.isInitiator}}">💡 捐款功能开发中，暂未接入真实支付</view>
       <view class="dev-tip" wx:if="{{crowd.isInitiator && crowd.status === 'ongoing'}}">💡 报销审核功能开发中：提交后由平台管理员处理</view>
       <button class="btn-primary donate-btn" bindtap="onDonate" wx:if="{{!crowd.isExpired && !crowd.isInitiator}}">
         ❤️ 参与捐款
